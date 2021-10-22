@@ -2,7 +2,9 @@
 DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
 
-Global $Version = "1.0.0.0"
+#Region ===== ===== Varables and Includes
+
+Global $Version = "0.2.0.0"
 #include <File.au3>
 #include <GuiListView.au3>
 
@@ -26,7 +28,10 @@ $colorRedDark=0xff0000
 $colorGreen=0xACFFA4
 $colorGray=0xCCCCCC
 
-#Region ==== GAME SETUP ====
+#EndRegion
+
+#Region ===== ===== GAME SETUP
+
 If Not FileExists($DirGame) Then DirCreate($DirGame)
 If Not FileExists($FileIPAddresses) Then
 ;=== IP generation
@@ -72,40 +77,39 @@ If Not FileExists($FileIPAddresses) Then
 		$IPID[$ii][5]=$setupIPsplit[6];Desription
 		$IPID[$ii][6]=$setupIPsplit[7];Root number
 
-#cs OLD ;Public IP Lookup
-		If $IPID[$ii][5]="Public IP Lookup" Then
-			$QFile=$DirGame&"\"&$IPID[$ii][1]&"public"
-			FileWrite($QFile,"IP"&@CRLF)
-			For $q=1 To _FileCountLines($FileIPAddresses) Step 1
-				$QsetupFileRead=FileReadLine($FileIPAddresses,$q)
-				$QsetupIPsplit=StringSplit($QsetupFileRead,",")
-				$qq=$QsetupIPsplit[2]
-				$qqRoot=$QsetupIPsplit[7]
-				If $qqRoot=$IPID[$ii][6] Then
-					FileWrite($QFile,$qq&@CRLF)
-				EndIf
-			Next
-		EndIf
-		#ce
 	Next
 
-		$QFile=$DirGame&"\"&$IPID_PublicLookupServer10&"public"
-		FileWrite($QFile,"IP"&@CRLF)
-		For $q=1 To _FileCountLines($FileIPAddresses) Step 1
-			$QsetupFileRead=FileReadLine($FileIPAddresses,$q)
-			$QsetupIPsplit=StringSplit($QsetupFileRead,",")
-			$qq=$QsetupIPsplit[2]
-			$qqRoot=$QsetupIPsplit[7]
-			If $qqRoot=$IPID[$IPID_PublicLookupServer10][6] Then
-				FileWrite($QFile,$qq&@CRLF)
-			EndIf
-		Next
+;Public IP Lookup Data Files Setup
+	;Public Lookup Server 10
+	$File_PublicLookupServer10_Public=$DirGame&"\"&$IPID_PublicLookupServer10&"public"
+	FileWrite($File_PublicLookupServer10_Public,"IP"&@CRLF)
+	FileWrite($File_PublicLookupServer10_Public,$IPID[$IPID_PublicLookupServer20][1]&@CRLF)
+
+	;Public Lookup Server 20
+	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"public"
+	FileWrite($File_PublicLookupServer20_Public,"IP"&@CRLF)
+
+	;Auto ADD
+	For $q=1 To _FileCountLines($FileIPAddresses) Step 1
+		$qq=$IPID[$q][1]
+		$qqRoot=$IPID[$q][6]
+
+		If $qqRoot=$IPID[$IPID_PublicLookupServer10][6] Then
+			FileWrite($File_PublicLookupServer10_Public,$qq&@CRLF)
+		EndIf
+
+		If $qqRoot=$IPID[$IPID_PublicLookupServer20][6] Then
+			FileWrite($File_PublicLookupServer20_Public,$qq&@CRLF)
+		EndIf
+	Next
 
 EndIf
 
 
 
 #EndRegion
+
+#Region ===== ===== Load Game
 
 ;--- GUI
 $guiHight = 400
@@ -149,7 +153,10 @@ $LableAdmin=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
 _ViewKnownIPsUpdate()
 GUISetState(@SW_SHOW)
 
-; ==== MAIN LOOP ====
+#EndRegion
+
+#Region ===== ===== MAIN LOOP
+
 While 1
 	$GUI_MSG=GUIGetMsg()
 
@@ -169,112 +176,115 @@ While 1
 
 WEnd
 
-Func _Connect()
-	$_connectID=$IPListID[GUICtrlRead($ViewKnownIPs)]
-	If $IPID[$_connectID][0] = "" Or $_connectBool=True then Return
-	Global $_connectBool=True
+#EndRegion
 
-	GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreen)
-	GUICtrlSetData($lableConnectedIP,$IPID[$_connectID][0])
-	_ViewKnownIPsUpdate()
-
-EndFunc
-
-Func _Disconnect()
-	If $_connectBool=False Then Return
-	$_connectBool=False
-	GUICtrlSetBkColor($ViewItem[$_connectID],$colorGray)
-	GUICtrlSetData($lableConnectedIP,"")
-
-	GUICtrlSetData($LablePublic,"")
-	GUICtrlSetData($LableAdmin,"")
-
-EndFunc
+#Region ===== ===== FUNCTIONS
 
 
+;----- PUBLIC DATA FILE READ and PROCCESS
+	Func _PublicData()
+		If $_connectBool=False Then Return
+		$_publicDataFile=$DirGame&$_connectID&"public"
+		$_publicDataFileRead=FileReadLine($_publicDataFile,1)
 
-;---- PUBLIC DATA FILE READ and PROCCESS
-Func _PublicData()
-	If $_connectBool=False Then Return
-	$_publicDataFile=$DirGame&$_connectID&"public"
-	$_publicDataFileRead=FileReadLine($_publicDataFile,1)
-
-;IP File Found
-	If $_publicDataFileRead="IP" Then
-		$_publicIPCount="New IP Addresses Found:"&@CRLF
-		$_publicIPCount2=0
-		For $i=2 to _FileCountLines($_publicDataFile) Step 1
-			$_publicDataFileRead=FileReadLine($_publicDataFile,$i)
-			If $_publicDataFileRead<>"" Then
-				$_publicSplit=StringSplit(FileReadLine($FileIPAddresses,$_publicDataFileRead),",")
-				If $_publicSplit[5]="Hidden" Then
-					$_publicString=StringReplace(FileReadLine($FileIPAddresses,$_publicDataFileRead),"Hidden","unHidden")
-					_FileWriteToLine($FileIPAddresses,$_publicDataFileRead,$_publicString,True)
-					$_publicIPCount=$_publicIPCount&$_publicSplit[1]&@CRLF
-					$_publicIPCount2+=1
+	;IP File Found
+		If $_publicDataFileRead="IP" Then
+			$_publicIPCount="New IP Addresses Found:"&@CRLF
+			$_publicIPCount2=0
+			For $i=2 to _FileCountLines($_publicDataFile) Step 1
+				$_publicDataFileRead=FileReadLine($_publicDataFile,$i)
+				If $_publicDataFileRead<>"" Then
+					$_publicSplit=StringSplit(FileReadLine($FileIPAddresses,$_publicDataFileRead),",")
+					If $_publicSplit[5]="Hidden" Then
+						$_publicString=StringReplace(FileReadLine($FileIPAddresses,$_publicDataFileRead),"Hidden","unHidden")
+						_FileWriteToLine($FileIPAddresses,$_publicDataFileRead,$_publicString,True)
+						$_publicIPCount=$_publicIPCount&$_publicSplit[1]&@CRLF
+						$_publicIPCount2+=1
+					EndIf
 				EndIf
-			EndIf
 
-		Next
-		If $_publicIPCount2=0 Then
-			GUICtrlSetData($LablePublic,"No new IP addresses found.")
+			Next
+			If $_publicIPCount2=0 Then
+				GUICtrlSetData($LablePublic,"No new IP addresses found.")
+			Else
+				$Temp_GUI1=GUICreate("New IP Adresses",200,300,-1,-1,0x00800000)
+				$Temp_GUI1_LableIPAddresses=GUICtrlCreateLabel($_publicIPCount,3,5,190,225)
+					GUICtrlSetFont(-1,7,700)
+				$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Addresses",3,240,190,25)
+				GUISetState(@SW_SHOW, $Temp_GUI1)
+				While 1
+					$GUI_MSG=GUIGetMsg()
+					Switch $GUI_MSG
+						Case $Temp_GUI1_ButtonAdd
+							ExitLoop
+					EndSwitch
+				WEnd
+				GUIDelete($Temp_GUI1)
+			EndIf
+			_ViewKnownIPsUpdate()
+
+	;No Public Data File
 		Else
-			$Temp_GUI1=GUICreate("New IP Adresses",200,300,-1,-1,0x00800000)
-			$Temp_GUI1_LableIPAddresses=GUICtrlCreateLabel($_publicIPCount,3,5,190,225)
-				GUICtrlSetFont(-1,7,700)
-			$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Addresses",3,240,190,25)
-			GUISetState(@SW_SHOW, $Temp_GUI1)
-			While 1
-				$GUI_MSG=GUIGetMsg()
-				Switch $GUI_MSG
-					Case $Temp_GUI1_ButtonAdd
-						ExitLoop
-				EndSwitch
-			WEnd
-			GUIDelete($Temp_GUI1)
+			GUICtrlSetData($LablePublic,"No Public Data File Found.")
 		EndIf
+	EndFunc
+
+;----- Connect Function
+	Func _Connect()
+		$_connectID=$IPListID[GUICtrlRead($ViewKnownIPs)]
+		If $IPID[$_connectID][0] = "" Or $_connectBool=True then Return
+		Global $_connectBool=True
+
+		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreen)
+		GUICtrlSetData($lableConnectedIP,$IPID[$_connectID][0])
 		_ViewKnownIPsUpdate()
 
-;No Public Data File
-	Else
-		GUICtrlSetData($LablePublic,"No Public Data File Found.")
-	EndIf
-EndFunc
+	EndFunc
 
+;----- Disconnect Fuction
+	Func _Disconnect()
+		If $_connectBool=False Then Return
+		$_connectBool=False
+		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGray)
+		GUICtrlSetData($lableConnectedIP,"")
 
+		GUICtrlSetData($LablePublic,"")
+		GUICtrlSetData($LableAdmin,"")
+
+	EndFunc
 
 ;--- VIEW UPDATE FUNCTION
-Func _ViewKnownIPsUpdate()
+	Func _ViewKnownIPsUpdate()
 
-	_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
+		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 
-	For $i=1 to _FileCountLines($FileIPAddresses) Step 1
-		$setupFileRead=FileReadLine($FileIPAddresses,$i)
-		$setupIPsplit=StringSplit($setupFileRead,",")
-		$ii=$setupIPsplit[2]
-		$IPID[$ii][0]=$setupIPsplit[1];Address
-		$IPID[$ii][1]=$ii;ID
-		$IPID[$ii][2]=$setupIPsplit[3];Security
-		$IPID[$ii][3]=$setupIPsplit[4];Owned
-		$IPID[$ii][4]=$setupIPsplit[5];Found
-		$IPID[$ii][5]=$setupIPsplit[6];Desription
-		$IPID[$ii][6]=$setupIPsplit[7];Root number
-	next
+		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
+			$setupFileRead=FileReadLine($FileIPAddresses,$i)
+			$setupIPsplit=StringSplit($setupFileRead,",")
+			$ii=$setupIPsplit[2]
+			$IPID[$ii][0]=$setupIPsplit[1];Address
+			$IPID[$ii][1]=$ii;ID
+			$IPID[$ii][2]=$setupIPsplit[3];Security
+			$IPID[$ii][3]=$setupIPsplit[4];Owned
+			$IPID[$ii][4]=$setupIPsplit[5];Found
+			$IPID[$ii][5]=$setupIPsplit[6];Desription
+			$IPID[$ii][6]=$setupIPsplit[7];Root number
+		next
 
-	For $i=1 to _FileCountLines($FileIPAddresses) Step 1
-		If $IPID[$i][4]="unHidden" Then
-			$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5],$ViewKnownIPs)
-			$IPListID[$ViewItem[$i]]=$IPID[$i][1]
-			If $IPID[$ii][3]="Owned" Then
-				GUICtrlSetColor(-1,$colorGreen)
+		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
+			If $IPID[$i][4]="unHidden" Then
+				$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5],$ViewKnownIPs)
+				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
+				If $IPID[$ii][3]="Owned" Then
+					GUICtrlSetColor(-1,$colorGreen)
+				EndIf
+				GUICtrlSetBkColor(-1,$colorGray)
 			EndIf
-			GUICtrlSetBkColor(-1,$colorGray)
-		EndIf
-	Next
+		Next
 
-	If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreen)
+		If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreen)
 
-EndFunc
+	EndFunc
 
 
 
