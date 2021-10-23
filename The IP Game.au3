@@ -1,5 +1,5 @@
 ;=========================DELETE
-DirRemove(@ScriptDir&"\Game\",1)
+;DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
 
 #Region ===== ===== Varables and Includes
@@ -19,8 +19,14 @@ Global $IPID[999][8] ;IP | ID | Security(0-6) | Owned(0-1) | Found(0-1) | Decrip
 Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
+Global $gameBandwidthTotal=100
 Global $_connectID
 Global $lableConnectedIP
+Global $ii
+;Tools
+Global $ToolPasswordBreaker1=True
+Global $ToolPasswordBreaker2=False
+Global $ToolPasswordBreaker3=False
 
 ;--- Color
 $colorRED=0xff9090
@@ -30,7 +36,7 @@ $colorGray=0xCCCCCC
 
 #EndRegion
 
-#Region ===== ===== GAME SETUP
+#Region ===== ===== GAME SETUP and loading
 
 If Not FileExists($DirGame) Then DirCreate($DirGame)
 If Not FileExists($FileIPAddresses) Then
@@ -38,10 +44,10 @@ If Not FileExists($FileIPAddresses) Then
 	$j=1
 ;Root Servers
 	For $i=$j To 9 Step 1
-		If $i<21 Then ; for 10.0.0.0 and 20.0.0.0 lowwer security
+		If $i<3 Then ; for 10.0.0.0 and 20.0.0.0 lowwer security
 			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",4,NotOwned,Hidden,Root Server,"&$i*10&",10000"&@CRLF) ;Root servers are hidden, Security 4
 		Else
-			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",6,NotOwned,Hidden,Root Server,"&$i*10&",90000"&@CRLF) ;Root servers are hidden, Security 6
+			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",6,NotOwned,Hidden,Root Server,"&$i*10&",100000"&@CRLF) ;Root servers are hidden, Security 6
 		EndIf
 	Next
 	$j+=9
@@ -57,36 +63,26 @@ If Not FileExists($FileIPAddresses) Then
 		$setupRootNumber=Random(1,9,1)*10
 		$IP_RandomAddress=$setupRootNumber&'.'&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)
 		If $setupRootNumber=10 Or $setupRootNumber=20 Then
-			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(1,2,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(10,500,1)&@CRLF)
+			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(1,2,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(1,5,1)*100&@CRLF)
 		Else
-			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(3,6,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(1000,50000,1)&@CRLF)
+			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(3,6,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(1,50,1)*1000&@CRLF)
 		EndIf
 	Next
 	$j+=50
 
 ;Load IP Addresses Table
-	For $i=1 To _FileCountLines($FileIPAddresses) Step 1
-		$setupFileRead=FileReadLine($FileIPAddresses,$i)
-		$setupIPsplit=StringSplit($setupFileRead,",")
-		$ii=$setupIPsplit[2]
-		$IPID[$ii][0]=$setupIPsplit[1];Address
-		$IPID[$ii][1]=$ii			  ;ID
-		$IPID[$ii][2]=$setupIPsplit[3];Security
-		$IPID[$ii][3]=$setupIPsplit[4];Owned
-		$IPID[$ii][4]=$setupIPsplit[5];Hidden/unHidden
-		$IPID[$ii][5]=$setupIPsplit[6];Desription
-		$IPID[$ii][6]=$setupIPsplit[7];Root number
-
-	Next
+	_LoadIPTable()
 
 ;Public IP Lookup Data Files Setup
 	;Public Lookup Server 10
-	$File_PublicLookupServer10_Public=$DirGame&"\"&$IPID_PublicLookupServer10&"public"
+	$File_PublicLookupServer10_Public=$DirGame&"\"&$IPID_PublicLookupServer10&"public" ; Public
 	FileWrite($File_PublicLookupServer10_Public,"IP"&@CRLF)
 	FileWrite($File_PublicLookupServer10_Public,$IPID[$IPID_PublicLookupServer20][1]&@CRLF)
+	$File_PublicLookupServer10_Admin=$DirGame&"\"&$IPID_PublicLookupServer10&"admin" ; Admin
+	FileWrite($File_PublicLookupServer10_Admin,"password,1,no-trace"&@CRLF)
 
 	;Public Lookup Server 20
-	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"public"
+	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"public" ;Public
 	FileWrite($File_PublicLookupServer20_Public,"IP"&@CRLF)
 
 	;Auto ADD
@@ -109,31 +105,34 @@ EndIf
 
 #EndRegion
 
-#Region ===== ===== Load Game
+#Region ===== ===== Load/Create Game
 
 ;--- GUI
 $guiHight = 400
 $guiWidth = 800
-$viewSizeListKnownIPs=400
+$viewSizeListKnownIPs=420
 $guiButtonHight=25
 $guiButtonWidth=125
 
 Global $GUI=GUICreate("The IP Game",$guiWidth,$guiHight)
 
-;--- IP Setup
-GUICtrlCreateLabel("Your IP Address:",5,5,100,25)
-$IPYourIP="60.180.55.23"
-$Lable_YourIP=GUICtrlCreateLabel($IPYourIP,100,5)
+;Right
+GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSizeListKnownIPs-5),5,$viewSizeListKnownIPs,-1,0x0001)
+$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSizeListKnownIPs-5,20,$viewSizeListKnownIPs,$guiHight-60)
 
-GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-$viewSizeListKnownIPs+10,5,$viewSizeListKnownIPs,-1,0x0001)
-$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription",$guiWidth-$viewSizeListKnownIPs+10,20,$viewSizeListKnownIPs,$guiHight-60)
-
-;--- GUI
 $ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
 $ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
 $ButtonTest=GUICtrlCreateButton("TEST",5,$guiHight-30,75,25)
 
-$top=30
+;Left
+$top=5
+GUICtrlCreateLabel("Your IP Address:",5,$top,100,25)
+$IPYourIP="60.180.55.23"
+$Lable_YourIP=GUICtrlCreateLabel($IPYourIP,100,$top)
+$top+=20
+GUICtrlCreateLabel("Total Bandwidth:",5,$top,100,25)
+$LableBandwaidthTotal=GUICtrlCreateLabel($gameBandwidthTotal&" MB/s",100,$top)
+$top+=25
 $lableConnectedTo=GUICtrlCreateLabel("Connected To: ",5,$top,80)
 $lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
 	GUICtrlSetFont(-1,8,600)
@@ -171,6 +170,8 @@ While 1
 			_ViewKnownIPsUpdate()
 		Case $buttonPublic
 			_PublicData()
+		Case $buttonAdmin
+			_AdminData()
 
 	EndSwitch
 
@@ -180,6 +181,16 @@ WEnd
 
 #Region ===== ===== FUNCTIONS
 
+;----- ADMIN DATA FILE READ and PROCCESS
+
+	Func _AdminData()
+		If $_connectBool=False Then Return
+		$_adminDataFile=$DirGame&$_connectID&"admin"
+		$_adminDataFileRead=FileReadLine($_adminDataFile,1)
+
+		MsgBox(0,'',$_adminDataFileRead)
+
+	EndFunc
 
 ;----- PUBLIC DATA FILE READ and PROCCESS
 	Func _PublicData()
@@ -220,8 +231,8 @@ WEnd
 					EndSwitch
 				WEnd
 				GUIDelete($Temp_GUI1)
+				_ViewKnownIPsUpdate()
 			EndIf
-			_ViewKnownIPsUpdate()
 
 	;No Public Data File
 		Else
@@ -241,6 +252,24 @@ WEnd
 
 	EndFunc
 
+;---- Load IP Table
+	Func _LoadIPTable()
+
+		For $i=1 To _FileCountLines($FileIPAddresses) Step 1
+			$setupFileRead=FileReadLine($FileIPAddresses,$i)
+			$setupIPsplit=StringSplit($setupFileRead,",")
+			$ii=$setupIPsplit[2]
+			$IPID[$ii][0]=$setupIPsplit[1];Address
+			$IPID[$ii][1]=$ii			  ;ID
+			$IPID[$ii][2]=$setupIPsplit[3];Security
+			$IPID[$ii][3]=$setupIPsplit[4];Owned
+			$IPID[$ii][4]=$setupIPsplit[5];Hidden/unHidden
+			$IPID[$ii][5]=$setupIPsplit[6];Desription
+			$IPID[$ii][6]=$setupIPsplit[7];Root number
+			$IPID[$ii][7]=$setupIPsplit[8];Bandwitdh
+		Next
+	EndFunc
+
 ;----- Disconnect Fuction
 	Func _Disconnect()
 		If $_connectBool=False Then Return
@@ -258,22 +287,13 @@ WEnd
 
 		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 
-		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
-			$setupFileRead=FileReadLine($FileIPAddresses,$i)
-			$setupIPsplit=StringSplit($setupFileRead,",")
-			$ii=$setupIPsplit[2]
-			$IPID[$ii][0]=$setupIPsplit[1];Address
-			$IPID[$ii][1]=$ii;ID
-			$IPID[$ii][2]=$setupIPsplit[3];Security
-			$IPID[$ii][3]=$setupIPsplit[4];Owned
-			$IPID[$ii][4]=$setupIPsplit[5];Found
-			$IPID[$ii][5]=$setupIPsplit[6];Desription
-			$IPID[$ii][6]=$setupIPsplit[7];Root number
-		next
+		_LoadIPTable()
 
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
 			If $IPID[$i][4]="unHidden" Then
-				$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5],$ViewKnownIPs)
+				If $IPID[$i][7]<1000 Then $tempBandwidth=$IPID[$i][7]&" MB/s"
+				If $IPID[$i][7]>999 Then $tempBandwidth=$IPID[$i][7]/1000&" GB/s"
+				$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5]&"|"&$tempBandwidth,$ViewKnownIPs)
 				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
 				If $IPID[$ii][3]="Owned" Then
 					GUICtrlSetColor(-1,$colorGreen)
