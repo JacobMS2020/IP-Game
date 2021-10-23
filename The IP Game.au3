@@ -1,7 +1,7 @@
 ;=========================DELETE
 ;DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
-Global $Version = "0.3.0.0"
+Global $Version = "0.3.0.1"
 
 #Region ===== ===== Varables and Includes
 
@@ -366,6 +366,20 @@ WEnd
 
 	EndFunc
 
+;----- Disconnect Fuction
+	Func _Disconnect()
+		If $_connectBool=False Then Return
+		$_connectBool=False
+		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGray)
+		GUICtrlSetData($lableConnectedIP,"")
+
+		GUICtrlSetData($LablePublic,"")
+			GUICtrlSetColor($LablePublic,$colorRED)
+		GUICtrlSetData($LableAdmin,"")
+			GUICtrlSetColor($LableAdmin,$colorRED)
+
+	EndFunc
+
 ;---- Load IP Table
 	Func _LoadIPTable()
 
@@ -384,20 +398,6 @@ WEnd
 		Next
 	EndFunc
 
-;----- Disconnect Fuction
-	Func _Disconnect()
-		If $_connectBool=False Then Return
-		$_connectBool=False
-		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGray)
-		GUICtrlSetData($lableConnectedIP,"")
-
-		GUICtrlSetData($LablePublic,"")
-			GUICtrlSetColor($LablePublic,$colorRED)
-		GUICtrlSetData($LableAdmin,"")
-			GUICtrlSetColor($LableAdmin,$colorRED)
-
-	EndFunc
-
 ;--- VIEW UPDATE FUNCTION
 	Func _ViewKnownIPsUpdate()
 
@@ -411,8 +411,8 @@ WEnd
 				If $IPID[$i][7]>999 Then $tempBandwidth=$IPID[$i][7]/1000&" GB/s"
 				$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5]&"|"&$tempBandwidth,$ViewKnownIPs)
 				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
-				If $IPID[$ii][3]="Owned" Then
-					GUICtrlSetColor(-1,$colorGreenLight)
+				If $IPID[$i][3]="Owned" Then
+					GUICtrlSetColor(-1,$colorGreen)
 				EndIf
 				GUICtrlSetBkColor(-1,$colorGray)
 			EndIf
