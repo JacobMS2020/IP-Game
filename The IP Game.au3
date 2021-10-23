@@ -1,10 +1,10 @@
 ;=========================DELETE
 ;DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
+Global $Version = "0.3.0.0"
 
 #Region ===== ===== Varables and Includes
 
-Global $Version = "0.2.0.0"
 #include <File.au3>
 #include <GuiListView.au3>
 
@@ -29,14 +29,15 @@ Global $ToolPasswordBreaker2=False
 Global $ToolPasswordBreaker3=False
 
 ;--- Color
-$colorRED=0xff9090
-$colorRedDark=0xff0000
-$colorGreen=0xACFFA4
+$colorREDLight=0xff9090
+$colorRED=0xff0000
+$colorGreenLight=0xACFFA4
+$colorGreen=0x24BA06
 $colorGray=0xCCCCCC
 
 #EndRegion
 
-#Region ===== ===== GAME SETUP and loading
+#Region ===== ===== GAME SETUP (and loading)
 
 If Not FileExists($DirGame) Then DirCreate($DirGame)
 If Not FileExists($FileIPAddresses) Then
@@ -139,12 +140,12 @@ $lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
 $top+=15
 $buttonPublic=GUICtrlCreateButton("Public Content",5,$top,$guiButtonWidth,$guiButtonHight)
 $LablePublic=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
-	GUICtrlSetColor(-1,$colorRedDark)
+	GUICtrlSetColor(-1,$colorRED)
 	GUICtrlSetFont(-1,7,700)
 $top+=30
 $buttonAdmin=GUICtrlCreateButton("Admin Login",5,$top,$guiButtonWidth,$guiButtonHight)
 $LableAdmin=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
-	GUICtrlSetColor(-1,$colorRedDark)
+	GUICtrlSetColor(-1,$colorRED)
 	GUICtrlSetFont(-1,7,700)
 
 
@@ -182,13 +183,126 @@ WEnd
 #Region ===== ===== FUNCTIONS
 
 ;----- ADMIN DATA FILE READ and PROCCESS
-
 	Func _AdminData()
-		If $_connectBool=False Then Return
+		If $_connectBool=False Then
+			Return
+		EndIf
+		;File Data
 		$_adminDataFile=$DirGame&$_connectID&"admin"
-		$_adminDataFileRead=FileReadLine($_adminDataFile,1)
+		$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
+		$_admindata=StringSplit($_adminDataFileRead1,",")
+		If Not FileExists($_adminDataFile) Then
+			GUICtrlSetData($LableAdmin,"No Admin File")
+			Return
+		EndIf
 
-		MsgBox(0,'',$_adminDataFileRead)
+	;Password Security
+		If $_admindata[1]="password" Then
+			$_admindataPasswordStrength=$_admindata[2]
+			If $_admindata[3]="trace" Then
+				$_admindataTrackActive=True
+			Else
+				$_admindataTrackActive=False
+			EndIf
+
+			$_admindataHack=_passwordCracking($_admindataTrackActive)
+			If $_admindataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Open",True)
+			$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
+
+		EndIf
+
+
+	;Under Hacks - Read admin data file
+		If $_adminDataFileRead1="Open" Then
+			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
+			;If $_adminDataFileRead2= Something then next step
+			_FileWriteToLine($_adminDataFile,1,"Owned",True)
+			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
+		EndIf
+
+	;Owned
+		If $_adminDataFileRead1="Owned" Then
+			GUICtrlSetData($LableAdmin,"Hello System Administrator!")
+			GUICtrlSetColor($LableAdmin,$colorGreen)
+		EndIf
+
+
+	EndFunc
+
+;----- Password Cracking
+	Func _passwordCracking($_passwordCrackingTraceActive)
+
+		$_passwordCrackingGUIwidth=200
+		$_passwordCrackingGUIhight=200
+		$_passwordCrackingGUI=GUICreate("Password Cracking",$_passwordCrackingGUIwidth,$_passwordCrackingGUIhight,-1,-1,0x00400000)
+		If $ToolPasswordBreaker1=True Then
+			$active1=-1
+		Else
+			$active1=0x08000000
+		EndIf
+		If $ToolPasswordBreaker2=True Then
+			$active2=-1
+		Else
+			$active2=0x08000000
+		EndIf
+		If $ToolPasswordBreaker3=True Then
+			$active3=-1
+		Else
+			$active3=0x08000000
+		EndIf
+
+		$top=5
+		$_passwordCrackingGUI_LableTrace=GUICtrlCreateLabel("Trace time remaing = (no trace)",5,$top,$_passwordCrackingGUIwidth-10,15,0x0001)
+			GUICtrlSetFont(-1,8.5,700)
+		$top+=20
+		$_passwordCrackingGUI_ButtonPasswordCracker1=GUICtrlCreateButton("Password Cracker Level 1",5,$top,$_passwordCrackingGUIwidth-10,25,$active1)
+		$top+=30
+		$_passwordCrackingGUI_ButtonPasswordCracker2=GUICtrlCreateButton("Password Cracker Level 2",5,$top,$_passwordCrackingGUIwidth-10,25,$active2)
+		$top+=30
+		$_passwordCrackingGUI_ButtonPasswordCracker3=GUICtrlCreateButton("Password Cracker Level 3",5,$top,$_passwordCrackingGUIwidth-10,25,$active3)
+		$top+=30
+		$_passwordCrackingGUI_InputPassword=GUICtrlCreateInput("",5,$top,$_passwordCrackingGUIwidth-10,25)
+		$top+=30
+		$top_button=$top ; Button is here
+		GUISetState(@SW_SHOW,$_passwordCrackingGUI)
+		While 1
+			$GUI_MSG=GUIGetMsg()
+			Switch $GUI_MSG
+				Case $_passwordCrackingGUI_ButtonPasswordCracker1
+					ExitLoop
+				Case $_passwordCrackingGUI_ButtonPasswordCracker2
+					ExitLoop
+				Case $_passwordCrackingGUI_ButtonPasswordCracker3
+					ExitLoop
+			EndSwitch
+		WEnd
+		$_passwordCrackingTimer=TimerInit()
+		$pwd = ""
+		Do
+			$pwd=""
+			Dim $aSpace[3]
+			$digits = Random(16,24,1)
+			For $i = 1 To $digits
+				$aSpace[0] = Chr(Random(65, 90, 1)) ;A-Z
+				$aSpace[1] = Chr(Random(97, 122, 1)) ;a-z
+				$aSpace[2] = Chr(Random(48, 57, 1)) ;0-9
+				$pwd &= $aSpace[Random(0, 2, 1)]
+			Next
+			Sleep(50)
+			GUICtrlSetData($_passwordCrackingGUI_InputPassword,$pwd)
+		Until TimerDiff($_passwordCrackingTimer)>1000
+		GUICtrlSetData($_passwordCrackingGUI_InputPassword,"Password Found")
+		GUICtrlSetBkColor($_passwordCrackingGUI_InputPassword,$colorGreenLight)
+		$_passwordCrackingGUI_ButtonNext = GUICtrlCreateButton("Next",($_passwordCrackingGUIwidth/2)-25,$top,50,25)
+		While 1
+			$GUI_MSG=GUIGetMsg()
+			Switch $GUI_MSG
+				Case $_passwordCrackingGUI_ButtonNext
+					ExitLoop
+			EndSwitch
+		WEnd
+		GUIDelete($_passwordCrackingGUI)
 
 	EndFunc
 
@@ -246,7 +360,7 @@ WEnd
 		If $IPID[$_connectID][0] = "" Or $_connectBool=True then Return
 		Global $_connectBool=True
 
-		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreen)
+		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
 		GUICtrlSetData($lableConnectedIP,$IPID[$_connectID][0])
 		_ViewKnownIPsUpdate()
 
@@ -278,7 +392,9 @@ WEnd
 		GUICtrlSetData($lableConnectedIP,"")
 
 		GUICtrlSetData($LablePublic,"")
+			GUICtrlSetColor($LablePublic,$colorRED)
 		GUICtrlSetData($LableAdmin,"")
+			GUICtrlSetColor($LableAdmin,$colorRED)
 
 	EndFunc
 
@@ -296,13 +412,13 @@ WEnd
 				$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5]&"|"&$tempBandwidth,$ViewKnownIPs)
 				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
 				If $IPID[$ii][3]="Owned" Then
-					GUICtrlSetColor(-1,$colorGreen)
+					GUICtrlSetColor(-1,$colorGreenLight)
 				EndIf
 				GUICtrlSetBkColor(-1,$colorGray)
 			EndIf
 		Next
 
-		If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreen)
+		If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
 
 	EndFunc
 
