@@ -1,7 +1,7 @@
 ;=========================DELETE
-;DirRemove(@ScriptDir&"\Game\",1)
+DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
-Global $Version = "0.3.2.0 Android"
+Global $Version = "0.3.2.1"
 
 #cs
 	    ===== ===== PLANNING
@@ -20,8 +20,8 @@ $DirGame=@ScriptDir&"\Game\"
 $FileIPAddresses=$DirGame&"ip_addresses"
 
 ;--- Vars
-;                    | 0 |  1 |       2       |      3     |      4     |     5            6			 7
-Global $IPID[999][8] ;IP | ID | Security(0-6) | Owned(0-1) | Found(0-1) | Decription | Root number | Bandwith |
+;                    | 0 |  1 |       2       |      3     |      4     |     5            6			 7		     8
+Global $IPID[999][9] ;IP | ID | Security(0-6) | Owned(0-1) | Found(0-1) | Decription | Root number | Bandwidth | UnderAtack
 Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
@@ -47,6 +47,7 @@ $colorGray=0xCCCCCC
 
 If Not FileExists($DirGame) Then DirCreate($DirGame)
 If Not FileExists($FileIPAddresses) Then
+
 ;=== IP generation
 	$j=1
 ;Root Servers
@@ -79,18 +80,18 @@ If Not FileExists($FileIPAddresses) Then
 ;Firewall IP groups
     For $i=$j To $j+6 Step 2 ;might need to be in Step 1
         $ii=1
-        $setupRandomIPGroup=Random(1,9,1)*10&"."&"."&Random(151,255)&'.'&Random(10,255,1)
+        $setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
         FileWrite($DirGame&"\"&$i&"admin","Firewall"&@CRLF&$i+1)
         $ii+=1
         $i+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
+        FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,No Description,"&$setupRootNumber&",10"&@CRLF)
         FileWrite($DirGame&"\"&$i&"admin","FirewallActive"&@CRLF&$i-1)
 	Next
-	
-;SSH IP groups      
+
+;SSH IP groups
 
 ;Load IP Addresses Table
 	_LoadIPTable()
@@ -170,6 +171,11 @@ $buttonAdmin=GUICtrlCreateButton("Admin Login",5,$top,$guiButtonWidth,$guiButton
 $LableAdmin=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
 	GUICtrlSetColor(-1,$colorRED)
 	GUICtrlSetFont(-1,7,700)
+$top+=30
+$buttonDDOS=GUICtrlCreateButton("DDOS",5,$top,$guiButtonWidth,$guiButtonHight)
+$LableDDOS=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
+	GUICtrlSetColor(-1,$colorRED)
+	GUICtrlSetFont(-1,7,700)
 
 $top+=35
 GUICtrlCreateLabel("--------------  Tools --------------",7,$top,$guiButtonWidth+20,-1,0x0001)
@@ -203,6 +209,8 @@ While 1
 			_PublicData()
 		Case $buttonAdmin
 			_AdminData()
+		Case $buttonDDOS
+			_DDOS()
 
 	EndSwitch
 
@@ -212,11 +220,10 @@ WEnd
 
 #Region ===== ===== FUNCTIONS
 
+#Region --- --- Data files and functions
 ;----- ADMIN DATA FILE READ and PROCCESS
 	Func _AdminData()
-		If $_connectBool=False Then
-			Return
-		EndIf
+		If $_connectBool=False Then Return
 		;File Data
 		$_adminDataFile=$DirGame&$_connectID&"admin"
 		$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
@@ -226,6 +233,7 @@ WEnd
 			Return
 		EndIf
 
+	;----- start proccessing the admin file
 	;Password Security
 		If $_admindata[1]="password" Then
 			$_admindataPasswordStrength=$_admindata[2]
@@ -239,22 +247,33 @@ WEnd
 			If $_admindataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Open",True)
 			$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
 
-		EndIf
+	;Firewall security
+		ElseIf $_adminDataFileRead1="FirewallActive" Then
+			GUICtrlSetData($LableAdmin,"There is a firewall in place")
 
+	;Is a Firewall
+		ElseIf $_adminDataFileRead1="Firewall" Then
+			GUICtrlSetData($LableAdmin,"This is a firewall")
 
 	;Under Hacks - Read admin data file
-		If $_adminDataFileRead1="Open" Then
+		ElseIf $_adminDataFileRead1="Open" Then
 			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
 			;If $_adminDataFileRead2= Something then next step
 			_FileWriteToLine($_adminDataFile,1,"Owned",True)
 			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
 			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
-		EndIf
 
 	;Owned
-		If $_adminDataFileRead1="Owned" Then
+		ElseIf $_adminDataFileRead1="Owned" Then
 			GUICtrlSetData($LableAdmin,"Hello System Administrator!")
 			GUICtrlSetColor($LableAdmin,$colorGreen)
+
+
+
+	;Unknow Command
+		Else
+			GUICtrlSetData($LableAdmin,"Admin File Unreadable")
+			Return
 		EndIf
 
 
@@ -383,6 +402,18 @@ WEnd
 			GUICtrlSetData($LablePublic,"No Public Data File Found.")
 		EndIf
 	EndFunc
+#EndRegion
+
+;----- DDOS
+	Func _DDOS()
+		If $_connectBool=False Then Return
+		If $gameBandwidthTotal>$IPID[$_connectID][7] Then
+			MsgBox(0,"Bandwidth","YES")
+		Else
+			MsgBox(0,"Bandwidth","NO")
+		EndIf
+
+	EndFunc
 
 ;----- Connect Function
 	Func _Connect()
@@ -407,6 +438,8 @@ WEnd
 			GUICtrlSetColor($LablePublic,$colorRED)
 		GUICtrlSetData($LableAdmin,"")
 			GUICtrlSetColor($LableAdmin,$colorRED)
+		GUICtrlSetData($LableDDOS,"")
+			GUICtrlSetColor($LableDDOS,$colorRED)
 
 	EndFunc
 
