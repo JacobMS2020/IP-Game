@@ -1,7 +1,7 @@
 ;=========================DELETE
 DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
-Global $Version = "0.3.2.1"
+Global $Version = "0.4.0.0 Bandwidth update"
 
 #cs
 	    ===== ===== PLANNING
@@ -20,8 +20,12 @@ $DirGame=@ScriptDir&"\Game\"
 $FileIPAddresses=$DirGame&"ip_addresses"
 
 ;--- Vars
-;                    | 0 |  1 |       2       |      3     |      4     |     5            6			 7		     8
-Global $IPID[999][9] ;IP | ID | Security(0-6) | Owned(0-1) | Found(0-1) | Decription | Root number | Bandwidth | UnderAtack
+;                    | 0 |  1 |       2       |   3   |    4  |      5     |       6	 |	   7	 |     8
+Global $IPID[999][9] ;IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack
+;					 | Change _LoadIPTable() and _AddressWrite() functions when this is added to
+
+;_AddressWrite( | IP(*.*.*.*) | ID(program) | Security(0-6) | Owned(NotOwned) | Hidden(NotHidden) | Decription "" | Bandwidth(int) | Default=Safe(UnderAttack)
+
 Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
@@ -43,51 +47,50 @@ $colorGray=0xCCCCCC
 
 #EndRegion
 
-#Region ===== ===== GAME SETUP (and loading)
+#Region ===== ===== GAME SETUP
 
 If Not FileExists($DirGame) Then DirCreate($DirGame)
-If Not FileExists($FileIPAddresses) Then
 
+If Not FileExists($FileIPAddresses) Then
 ;=== IP generation
 	$j=1
 ;Root Servers
 	For $i=$j To 9 Step 1
 		If $i<3 Then ; for 10.0.0.0 and 20.0.0.0 lower security
-			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",4,NotOwned,Hidden,Root Server,"&$i*10&",10000"&@CRLF) ;Root servers are hidden, Security 4
+			_AddressWrite($i*10&".0.0.0",$i,4,"NotOwned","Hidden","Root Server",10000) ;Root servers are hidden, Security 4
 		Else
-			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",6,NotOwned,Hidden,Root Server,"&$i*10&",100000"&@CRLF) ;Root servers are hidden, Security 6
+			_AddressWrite($i*10&".0.0.0",$i,6,"NotOwned","Hidden",'Root Server',100000) ;Root servers are hidden, Security 6
 		EndIf
 	Next
 	$j+=9
 ;Public IP Lookup
 	$IPID_PublicLookupServer10=$j
-	FileWrite($FileIPAddresses,"10."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)&","&$j&",0,NotOwned,unHidden,Public IP Lookup,10,100"&@CRLF) ;1st IP lookup unHidden (10.IP's)
+	_AddressWrite("10."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1),$j,0,'NotOwned','unHidden','Public IP Lookup',100) ;1st IP lookup unHidden (10.IP's)
 	$j+=1
 	$IPID_PublicLookupServer20=$j
-	FileWrite($FileIPAddresses,"20."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)&","&$j&",0,NotOwned,Hidden,Public IP Lookup,20,100"&@CRLF) ;2nd IP Lookup Hidden (20.IP's)
+	_AddressWrite("20."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1),$j,0,'NotOwned','Hidden','Public IP Lookup',100) ;2nd IP Lookup Hidden (20.IP's)
 	$j+=1
 ;Random IP Addresses
 	For $i=$j to $j+50 Step 1
 		$setupRootNumber=Random(1,9,1)*10
 		$IP_RandomAddress=$setupRootNumber&'.'&Random(10,150,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)
 		If $setupRootNumber=10 Or $setupRootNumber=20 Then
-			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(1,2,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(1,5,1)*100&@CRLF)
+			_AddressWrite($IP_RandomAddress,$i,Random(1,2,1),"NotOwned",'Hidden','No Description',Random(1,5,1)*100)
 		Else
-			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(3,6,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(1,50,1)*1000&@CRLF)
+			_AddressWrite($IP_RandomAddress,$i,Random(3,6,1),"NotOwned",'Hidden','No Description',Random(1,50,1)*1000)
 		EndIf
 	Next
-	$j+=50
+	$j+=51
 ;Firewall IP groups
     For $i=$j To $j+6 Step 2 ;might need to be in Step 1
         $ii=1
         $setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
+        _AddressWrite($IP_RandomAddress,$i,3,'NotOwned','unHidden','Firewall',100)
         FileWrite($DirGame&"\"&$i&"admin","Firewall"&@CRLF&$i+1)
         $ii+=1
-        $i+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,No Description,"&$setupRootNumber&",10"&@CRLF)
+        _AddressWrite($IP_RandomAddress,$i+1,3,'NotOwned','unHidden','No Description',1000)
         FileWrite($DirGame&"\"&$i&"admin","FirewallActive"&@CRLF&$i-1)
 	Next
 
@@ -246,6 +249,8 @@ WEnd
 			$_admindataHack=_passwordCracking($_admindataTrackActive)
 			If $_admindataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Open",True)
 			$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
+			GUICtrlSetData($LableAdmin,"Hello System Administrator!")
+			GUICtrlSetColor($LableAdmin,$colorGreen)
 
 	;Firewall security
 		ElseIf $_adminDataFileRead1="FirewallActive" Then
@@ -254,14 +259,6 @@ WEnd
 	;Is a Firewall
 		ElseIf $_adminDataFileRead1="Firewall" Then
 			GUICtrlSetData($LableAdmin,"This is a firewall")
-
-	;Under Hacks - Read admin data file
-		ElseIf $_adminDataFileRead1="Open" Then
-			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
-			;If $_adminDataFileRead2= Something then next step
-			_FileWriteToLine($_adminDataFile,1,"Owned",True)
-			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
-			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
 
 	;Owned
 		ElseIf $_adminDataFileRead1="Owned" Then
@@ -275,6 +272,20 @@ WEnd
 			GUICtrlSetData($LableAdmin,"Admin File Unreadable")
 			Return
 		EndIf
+
+
+
+	;Amend Addresses File AFTER commands issued (Must be at the end of this function)
+		If $_adminDataFileRead1="Open" Then
+			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
+			;If $_adminDataFileRead2= Something then next step
+			_FileWriteToLine($_adminDataFile,1,"Owned",True)
+			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
+		EndIf
+
+
+		_ViewKnownIPsUpdate()
 
 
 	EndFunc
@@ -455,10 +466,23 @@ WEnd
 			$IPID[$ii][2]=$setupIPsplit[3];Security
 			$IPID[$ii][3]=$setupIPsplit[4];Owned
 			$IPID[$ii][4]=$setupIPsplit[5];Hidden/unHidden
-			$IPID[$ii][5]=$setupIPsplit[6];Desription
+			$IPID[$ii][5]=$setupIPsplit[6];Description
 			$IPID[$ii][6]=$setupIPsplit[7];Root number
 			$IPID[$ii][7]=$setupIPsplit[8];Bandwitdh
+			$IPID[$ii][8]=$setupIPsplit[9];Under Attack
 		Next
+
+	EndFunc
+
+;----- Address Write to File
+	Func _AddressWrite($_AddressWriteIP,$_AddressWriteID,$_AddressWriteSecurity,$_AddressWriteOwned,$_AddressWriteHidden,$_AddressWriteDescription,$_AddressWriteBandwidth,$_AddressWriteUnderAttack="Safe")
+		;Root number
+		$_addressStringSplitRootNumber=StringSplit($_AddressWriteIP,".")
+		$_AddressWriteRootNumber=$_addressStringSplitRootNumber[1]
+		;Write the file
+		FileWrite($FileIPAddresses,$_AddressWriteIP&","&$_AddressWriteID&","&$_AddressWriteSecurity&","& _
+		$_AddressWriteOwned&","&$_AddressWriteHidden&","&$_AddressWriteDescription&","&$_AddressWriteRootNumber&","&$_AddressWriteBandwidth&","&$_AddressWriteUnderAttack&@CRLF)
+
 	EndFunc
 
 ;--- VIEW UPDATE FUNCTION
