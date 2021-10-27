@@ -45,7 +45,7 @@ If Not FileExists($FileIPAddresses) Then
 	$j=1
 ;Root Servers
 	For $i=$j To 9 Step 1
-		If $i<3 Then ; for 10.0.0.0 and 20.0.0.0 lowwer security
+		If $i<3 Then ; for 10.0.0.0 and 20.0.0.0 lower security
 			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",4,NotOwned,Hidden,Root Server,"&$i*10&",10000"&@CRLF) ;Root servers are hidden, Security 4
 		Else
 			FileWrite($FileIPAddresses,$i*10&".0.0.0,"&$i&",6,NotOwned,Hidden,Root Server,"&$i*10&",100000"&@CRLF) ;Root servers are hidden, Security 6
@@ -62,7 +62,7 @@ If Not FileExists($FileIPAddresses) Then
 ;Random IP Addresses
 	For $i=$j to $j+50 Step 1
 		$setupRootNumber=Random(1,9,1)*10
-		$IP_RandomAddress=$setupRootNumber&'.'&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)
+		$IP_RandomAddress=$setupRootNumber&'.'&Random(10,150,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)
 		If $setupRootNumber=10 Or $setupRootNumber=20 Then
 			FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&","&Random(1,2,1)&",NotOwned,Hidden,No Description,"&$setupRootNumber&","&Random(1,5,1)*100&@CRLF)
 		Else
@@ -70,6 +70,20 @@ If Not FileExists($FileIPAddresses) Then
 		EndIf
 	Next
 	$j+=50
+;Firewall IP groupes
+    For $i=$j To $j+6 Step 2 ;might need to be in Step 1
+        $ii=1
+        $setupRootNumber=Random(1,9,1)*10 ;IP addresses are writtem wrong as they both cant be random as they need to look the same to the user.
+        $IP_RandomAddress=$setupRootNumber&"."&Random(151,255)&'.'&Random(10,255,1)&'.'&$ii
+        FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
+        FileWrite($DirGame&"\"&$i&"admin","Firewall"&@CRLF&$i+1)
+        $ii+=1
+        $i+=1
+        $IP_RandomAddress=$setupRootNumber&"."&Random(151,255)&'.'&Random(10,255,1)&'.'&$ii
+        FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
+        FileWrite($DirGame&"\"&$i&"admin","FirewallActive"&@CRLF&$i-1)
+		
+        
 
 ;Load IP Addresses Table
 	_LoadIPTable()
