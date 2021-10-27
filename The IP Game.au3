@@ -3,6 +3,12 @@
 ;=========================DELETE
 Global $Version = "0.3.2.0 Android"
 
+#cs
+	    ===== ===== PLANNING
+Font = Wingdings
+http://www.alanwood.net/demos/wingdings.html
+#ce
+
 #Region ===== ===== Varables and Includes
 
 #include <File.au3>
@@ -121,7 +127,7 @@ EndIf
 
 #EndRegion
 
-#Region ===== ===== Load/Create Game
+#Region ===== ===== Load/Create GUI Game
 
 ;--- GUI
 $guiHight = 400
@@ -149,6 +155,8 @@ $top+=20
 GUICtrlCreateLabel("Total Bandwidth:",5,$top,100,25)
 $LableBandwaidthTotal=GUICtrlCreateLabel($gameBandwidthTotal&" MB/s",100,$top)
 $top+=25
+GUICtrlCreateLabel("------------  Connection ------------ ",7,$top,$guiButtonWidth+20,-1,0x0001)
+$top+=20
 $lableConnectedTo=GUICtrlCreateLabel("Connected To: ",5,$top,80)
 $lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
 	GUICtrlSetFont(-1,8,600)
@@ -162,6 +170,13 @@ $buttonAdmin=GUICtrlCreateButton("Admin Login",5,$top,$guiButtonWidth,$guiButton
 $LableAdmin=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
 	GUICtrlSetColor(-1,$colorRED)
 	GUICtrlSetFont(-1,7,700)
+
+$top+=35
+GUICtrlCreateLabel("--------------  Tools --------------",7,$top,$guiButtonWidth+20,-1,0x0001)
+$top+=20
+$buttonInstallTool=GUICtrlCreateButton("Install Tools",5,$top,$guiButtonWidth,$guiButtonHight)
+$top+=30
+$LableToolsList=GUICtrlCreateLabel(" No tools installed.",5,$top,$guiButtonWidth,100,0x00800000)
 
 
 
