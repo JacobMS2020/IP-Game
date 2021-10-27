@@ -70,20 +70,21 @@ If Not FileExists($FileIPAddresses) Then
 		EndIf
 	Next
 	$j+=50
-;Firewall IP groupes
+;Firewall IP groups
     For $i=$j To $j+6 Step 2 ;might need to be in Step 1
         $ii=1
-        $setupRootNumber=Random(1,9,1)*10 ;IP addresses are writtem wrong as they both cant be random as they need to look the same to the user.
-        $IP_RandomAddress=$setupRootNumber&"."&Random(151,255)&'.'&Random(10,255,1)&'.'&$ii
+        $setupRandomIPGroup=Random(1,9,1)*10&"."&"."&Random(151,255)&'.'&Random(10,255,1)
+        $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
         FileWrite($DirGame&"\"&$i&"admin","Firewall"&@CRLF&$i+1)
         $ii+=1
         $i+=1
-        $IP_RandomAddress=$setupRootNumber&"."&Random(151,255)&'.'&Random(10,255,1)&'.'&$ii
+        $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         FileWrite($FileIPAddresses,$IP_RandomAddress&","&$i&",3,NotOwned,unHidden,Firewall,"&$setupRootNumber&",10"&@CRLF)
         FileWrite($DirGame&"\"&$i&"admin","FirewallActive"&@CRLF&$i-1)
-		
-        
+	Next
+	
+;SSH IP groups      
 
 ;Load IP Addresses Table
 	_LoadIPTable()
