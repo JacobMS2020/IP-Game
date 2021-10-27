@@ -1,7 +1,7 @@
 ;=========================DELETE
 ;DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
-Global $Version = "0.3.0.1"
+Global $Version = "0.3.2.0 Android"
 
 #Region ===== ===== Varables and Includes
 
