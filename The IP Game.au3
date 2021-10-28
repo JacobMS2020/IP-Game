@@ -1,7 +1,8 @@
+
 ;=========================DELETE
-DirRemove(@ScriptDir&"\Game\",1)
+;DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
-Global $Version = "0.4.0.0 Bandwidth update"
+Global $Version = "0.4.1.0 Bandwidth update"
 
 #cs
 	    ===== ===== PLANNING
@@ -29,6 +30,7 @@ Global $IPID[999][9] ;IP | ID | Security(0-6) | Owned | Found | Decription | Roo
 Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
+Global $gameBandwidthCalc=False
 Global $gameBandwidthTotal=100
 Global $_connectID
 Global $lableConnectedIP
@@ -44,6 +46,7 @@ $colorRED=0xff0000
 $colorGreenLight=0xACFFA4
 $colorGreen=0x24BA06
 $colorGray=0xCCCCCC
+$colorOrange=0xFF9700
 
 #EndRegion
 
@@ -133,64 +136,63 @@ EndIf
 
 #Region ===== ===== Load/Create GUI Game
 
-;--- GUI
-$guiHight = 400
-$guiWidth = 800
-$viewSizeListKnownIPs=420
-$guiButtonHight=25
-$guiButtonWidth=125
+;----- GUI
+	$guiHight = 400
+	$guiWidth = 800
+	$viewSizeListKnownIPs=420
+	$guiButtonHight=25
+	$guiButtonWidth=125
 
-Global $GUI=GUICreate("The IP Game",$guiWidth,$guiHight)
+	Global $GUI=GUICreate("The IP Game",$guiWidth,$guiHight)
 
-;Right
-GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSizeListKnownIPs-5),5,$viewSizeListKnownIPs,-1,0x0001)
-$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSizeListKnownIPs-5,20,$viewSizeListKnownIPs,$guiHight-60)
+	;Right
+	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSizeListKnownIPs-5),5,$viewSizeListKnownIPs,-1,0x0001)
+	$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSizeListKnownIPs-5,20,$viewSizeListKnownIPs,$guiHight-60)
 
-$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
-$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
-$ButtonTest=GUICtrlCreateButton("TEST",5,$guiHight-30,75,25)
+	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
+	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
+	$ButtonTest=GUICtrlCreateButton("TEST",5,$guiHight-30,75,25)
 
-;Left
-$top=5
-GUICtrlCreateLabel("Your IP Address:",5,$top,100,25)
-$IPYourIP="60.180.55.23"
-$Lable_YourIP=GUICtrlCreateLabel($IPYourIP,100,$top)
-$top+=20
-GUICtrlCreateLabel("Total Bandwidth:",5,$top,100,25)
-$LableBandwaidthTotal=GUICtrlCreateLabel($gameBandwidthTotal&" MB/s",100,$top)
-$top+=25
-GUICtrlCreateLabel("------------  Connection ------------ ",7,$top,$guiButtonWidth+20,-1,0x0001)
-$top+=20
-$lableConnectedTo=GUICtrlCreateLabel("Connected To: ",5,$top,80)
-$lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
-	GUICtrlSetFont(-1,8,600)
-$top+=15
-$buttonPublic=GUICtrlCreateButton("Public Content",5,$top,$guiButtonWidth,$guiButtonHight)
-$LablePublic=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
-	GUICtrlSetColor(-1,$colorRED)
-	GUICtrlSetFont(-1,7,700)
-$top+=30
-$buttonAdmin=GUICtrlCreateButton("Admin Login",5,$top,$guiButtonWidth,$guiButtonHight)
-$LableAdmin=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
-	GUICtrlSetColor(-1,$colorRED)
-	GUICtrlSetFont(-1,7,700)
-$top+=30
-$buttonDDOS=GUICtrlCreateButton("DDOS",5,$top,$guiButtonWidth,$guiButtonHight)
-$LableDDOS=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
-	GUICtrlSetColor(-1,$colorRED)
-	GUICtrlSetFont(-1,7,700)
+	;Left
+	$top=5
+	GUICtrlCreateLabel("Your IP Address:",5,$top,100,25)
+	$IPYourIP="60.180.55.23"
+	$Lable_YourIP=GUICtrlCreateLabel($IPYourIP,100,$top)
+	$top+=20
+	GUICtrlCreateLabel("Total Bandwidth:",5,$top,100,25)
+	$LableBandwaidthTotal=GUICtrlCreateLabel($gameBandwidthTotal&" MB/s",100,$top)
+	$top+=25
+	GUICtrlCreateLabel("------------  Connection ------------ ",7,$top,$guiButtonWidth+20,-1,0x0001)
+	$top+=20
+	$lableConnectedTo=GUICtrlCreateLabel("Connected To: ",5,$top,80)
+	$lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
+		GUICtrlSetFont(-1,8,600)
+	$top+=15
+	$buttonPublic=GUICtrlCreateButton("Public Content",5,$top,$guiButtonWidth,$guiButtonHight)
+	$LablePublic=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
+		GUICtrlSetColor(-1,$colorRED)
+		GUICtrlSetFont(-1,7,700)
+	$top+=30
+	$buttonAdmin=GUICtrlCreateButton("Admin Login",5,$top,$guiButtonWidth,$guiButtonHight)
+	$LableAdmin=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
+		GUICtrlSetColor(-1,$colorRED)
+		GUICtrlSetFont(-1,7,700)
+	$top+=30
+	$buttonDDOS=GUICtrlCreateButton("DDOS",5,$top,$guiButtonWidth,$guiButtonHight)
+	$LableDDOS=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
+		GUICtrlSetColor(-1,$colorRED)
+		GUICtrlSetFont(-1,7,700)
 
-$top+=35
-GUICtrlCreateLabel("--------------  Tools --------------",7,$top,$guiButtonWidth+20,-1,0x0001)
-$top+=20
-$buttonInstallTool=GUICtrlCreateButton("Install Tools",5,$top,$guiButtonWidth,$guiButtonHight)
-$top+=30
-$LableToolsList=GUICtrlCreateLabel(" No tools installed.",5,$top,$guiButtonWidth,100,0x00800000)
+	$top+=35
+	GUICtrlCreateLabel("--------------  Tools --------------",7,$top,$guiButtonWidth+20,-1,0x0001)
+	$top+=20
+	$buttonInstallTool=GUICtrlCreateButton("Install Tools",5,$top,$guiButtonWidth,$guiButtonHight)
+	$top+=30
+	$LableToolsList=GUICtrlCreateLabel(" No tools installed.",5,$top,$guiButtonWidth,100,0x00800000)
 
-
-
-_ViewKnownIPsUpdate()
-GUISetState(@SW_SHOW)
+;----- Load Game
+	_ViewUpdate()
+	GUISetState(@SW_SHOW)
 
 #EndRegion
 
@@ -207,7 +209,7 @@ While 1
 		Case $ButtonDisconnect
 			_Disconnect()
 		Case $ButtonTest
-			_ViewKnownIPsUpdate()
+			_ViewUpdate()
 		Case $buttonPublic
 			_PublicData()
 		Case $buttonAdmin
@@ -258,7 +260,7 @@ WEnd
 
 	;Is a Firewall
 		ElseIf $_adminDataFileRead1="Firewall" Then
-			GUICtrlSetData($LableAdmin,"This is a firewall")
+			GUICtrlSetData($LableAdmin,"This is a firewall and has no admin login.")
 
 	;Owned
 		ElseIf $_adminDataFileRead1="Owned" Then
@@ -285,7 +287,7 @@ WEnd
 		EndIf
 
 
-		_ViewKnownIPsUpdate()
+		_ViewUpdate()
 
 
 	EndFunc
@@ -405,7 +407,7 @@ WEnd
 					EndSwitch
 				WEnd
 				GUIDelete($Temp_GUI1)
-				_ViewKnownIPsUpdate()
+				_ViewUpdate()
 			EndIf
 
 	;No Public Data File
@@ -418,11 +420,45 @@ WEnd
 ;----- DDOS
 	Func _DDOS()
 		If $_connectBool=False Then Return
-		If $gameBandwidthTotal>$IPID[$_connectID][7] Then
-			MsgBox(0,"Bandwidth","YES")
-		Else
-			MsgBox(0,"Bandwidth","NO")
+	;Vars
+		$_DDOSadminFile=$DirGame&$_connectID&"admin"
+		$_DDOSBandwith=$IPID[$_connectID][7]
+
+	;Stop DDOS (If allready attacked)
+		If $IPID[$_connectID][8]="underAttack" Then
+			$gameBandwidthTotal=$gameBandwidthTotal+$_DDOSBandwith
+			$_DDOSStringAddress=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"underAttack","Safe")
+			_FileWriteToLine($FileIPAddresses,$_connectID,$_DDOSStringAddress,True)
+			GUICtrlSetData($LableDDOS,"Attacked Stopped.")
+				GUICtrlSetColor($LableDDOS,$colorGreen)
+			GUICtrlSetData($buttonDDOS,"DDOS")
+			_ViewUpdate()
+			Return
 		EndIf
+	;Check if attack possible
+		If FileExists($_DDOSadminFile) Then
+			If Not FileReadLine($_DDOSadminFile,1) = "Firewall" Then
+				GUICtrlSetData($LableDDOS,"Only Firewalls can be attacked.")
+				Return
+			EndIf
+		Else
+			GUICtrlSetData($LableDDOS,"Only Firewalls can be attacked.")
+			Return
+		EndIf
+		If $gameBandwidthTotal<$_DDOSBandwith Then
+			GUICtrlSetData($LableDDOS,"Attack not possible, not enough bandwidth.")
+			Return
+		EndIf
+
+	;Start attack
+		$gameBandwidthTotal=$gameBandwidthTotal-$_DDOSBandwith
+		$_DDOSStringAddress=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"Safe","underAttack")
+		_FileWriteToLine($FileIPAddresses,$_connectID,$_DDOSStringAddress,True)
+		GUICtrlSetData($LableDDOS,"Attacked Started!")
+			GUICtrlSetColor($LableDDOS,$colorGreen)
+		GUICtrlSetData($buttonDDOS,"Stop DDOS")
+		_ViewUpdate()
+
 
 	EndFunc
 
@@ -434,7 +470,8 @@ WEnd
 
 		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
 		GUICtrlSetData($lableConnectedIP,$IPID[$_connectID][0])
-		_ViewKnownIPsUpdate()
+		If $IPID[$_connectID][8]="underAttack" Then GUICtrlSetData($buttonDDOS,"Stop DDOS")
+		_ViewUpdate()
 
 	EndFunc
 
@@ -444,13 +481,14 @@ WEnd
 		$_connectBool=False
 		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGray)
 		GUICtrlSetData($lableConnectedIP,"")
-
+	;Reset Lables to defaults
 		GUICtrlSetData($LablePublic,"")
 			GUICtrlSetColor($LablePublic,$colorRED)
 		GUICtrlSetData($LableAdmin,"")
 			GUICtrlSetColor($LableAdmin,$colorRED)
 		GUICtrlSetData($LableDDOS,"")
 			GUICtrlSetColor($LableDDOS,$colorRED)
+		GUICtrlSetData($buttonDDOS,"DDOS")
 
 	EndFunc
 
@@ -486,7 +524,7 @@ WEnd
 	EndFunc
 
 ;--- VIEW UPDATE FUNCTION
-	Func _ViewKnownIPsUpdate()
+	Func _ViewUpdate()
 
 		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 
@@ -500,12 +538,25 @@ WEnd
 				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
 				If $IPID[$i][3]="Owned" Then
 					GUICtrlSetColor(-1,$colorGreen)
+				ElseIf $IPID[$i][8]="underAttack" Then
+					GUICtrlSetColor(-1,$colorOrange)
+					If $gameBandwidthCalc=False Then
+						$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
+					EndIf
 				EndIf
 				GUICtrlSetBkColor(-1,$colorGray)
 			EndIf
 		Next
 
 		If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
+
+		If $gameBandwidthTotal<1000 Then
+			GUICtrlSetData($LableBandwaidthTotal,$gameBandwidthTotal&" MB/s")
+		Else
+			GUICtrlSetData($LableBandwaidthTotal,$gameBandwidthTotal&" GB/s")
+		EndIf
+
+		$gameBandwidthCalc=True ;Bandwidth has been calculated and does not need to happen again
 
 	EndFunc
 
