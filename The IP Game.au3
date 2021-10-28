@@ -1,4 +1,4 @@
-Global $Version = "0.5.0.1 Firewall update"
+Global $Version = "0.5.0.2 Firewall update"
 
 #cs
 	    ===== ===== PLANNING
@@ -94,12 +94,12 @@ If Not FileExists($FileIPAddresses) Then
 		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','Firewall',100)
-        FileWrite($DirGame&"\"&$iiID&"admin","Firewall"&@CRLF&$iiID+1)
+        FileWrite($DirGame&"\"&$iiID&"admin","Firewall,"&$iiID+1)
         $ii+=10
 		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','No Description',1000)
-        FileWrite($DirGame&"\"&$iiID&"admin","FirewallActive"&@CRLF&$iiID-1)
+        FileWrite($DirGame&"\"&$iiID&"admin","FirewallActive,"&$iiID-1)
 	Next
 
 ;SSH IP groups
@@ -267,9 +267,8 @@ WEnd
 			GUICtrlSetColor($LableAdmin,$colorGreen)
 
 	;Firewall security
-		ElseIf $_adminDataFileRead1="FirewallActive" Then
-			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
-			If $IPID[$_adminDataFileRead2][8]="underAttack" Then
+		ElseIf $_admindata[1]="FirewallActive" Then
+			If $IPID[$_admindata[2]][8]="underAttack" Then
 				GUICtrlSetData($LableAdmin,"Server and Firewall Server cracked!")
 					GUICtrlSetColor($LableAdmin,$colorGreen)
 				;Change the Server info to Owned
@@ -277,11 +276,11 @@ WEnd
 				_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
 				_FileWriteToLine($_adminDataFile,1,"Owned",True)
 				;Change the Firewall Server info
-				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_adminDataFileRead2),"NotOwned","Owned")
-				_FileWriteToLine($FileIPAddresses,$_adminDataFileRead2,$_admindataString,True)
-				_FileWriteToLine($DirGame&$_adminDataFileRead2&"admin",1,"Owned",True)
-				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_adminDataFileRead2),"underAttack","Safe")
-				_FileWriteToLine($FileIPAddresses,$_adminDataFileRead2,$_admindataString,True)
+				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_admindata[2]),"NotOwned","Owned")
+				_FileWriteToLine($FileIPAddresses,$_admindata[2],$_admindataString,True)
+				_FileWriteToLine($DirGame&$_admindata[2]&"admin",1,"Owned",True)
+				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_admindata[2]),"underAttack","Safe")
+				_FileWriteToLine($FileIPAddresses,$_admindata[2],$_admindataString,True)
 				_BandwidthUpdate()
 			Else
 				GUICtrlSetData($LableAdmin,"There is a firewall in place")
@@ -447,6 +446,7 @@ WEnd
 		If $_connectBool=False Then Return
 	;Vars
 		$_DDOSadminFile=$DirGame&$_connectID&"admin"
+		$_DDOSadminData=StringSplit(FileReadLine($_DDOSadminFile,1),",")
 		$_DDOSBandwith=$IPID[$_connectID][7]
 
 	;Stop DDOS (If allready attacked)
@@ -462,7 +462,7 @@ WEnd
 		EndIf
 	;Check if attack possible
 		If FileExists($_DDOSadminFile) Then
-			If FileReadLine($_DDOSadminFile,1) <> "Firewall" Then
+			If $_DDOSadminData[1] <> "Firewall" Then
 				GUICtrlSetData($LableDDOS,"Only Firewalls can be attacked.")
 				Return
 			EndIf
