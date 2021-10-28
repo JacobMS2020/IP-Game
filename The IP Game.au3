@@ -1,4 +1,4 @@
-Global $Version = "0.5.0.2 Firewall update"
+Global $Version = "0.5.1.0 SSH Beta update"
 
 #cs
 	    ===== ===== PLANNING
@@ -15,6 +15,7 @@ http://www.alanwood.net/demos/wingdings.html
 $DirBin=@ScriptDir&"\Bin\"
 $DirGame=@ScriptDir&"\Game\"
 $FileIPAddresses=$DirGame&"ip_addresses"
+$FileSSHcertificats=$DirGame&"SSH_certificats"
 
 ;--- Vars
 ;                    | 0 |  1 |       2       |   3   |    4  |      5     |       6	 |	   7	 |     8
@@ -71,7 +72,8 @@ If Not FileExists($FileIPAddresses) Then
 	_AddressWrite("20."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1),$j,0,'NotOwned','Hidden','Public IP Lookup',100) ;2nd IP Lookup Hidden (20.IP's)
 	$j+=1
 ;Random IP Addresses
-	For $i=$j to $j+50 Step 1
+	$numberOfIPs=50
+	For $i=$j to $j+$numberOfIPs Step 1
 		$setupRootNumber=Random(1,9,1)*10
 		$IP_RandomAddress=$setupRootNumber&'.'&Random(10,150,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1)
 		If $setupRootNumber=10 Or $setupRootNumber=20 Then
@@ -80,15 +82,16 @@ If Not FileExists($FileIPAddresses) Then
 			_AddressWrite($IP_RandomAddress,$i,Random(3,6,1),"NotOwned",'Hidden','No Description',Random(1,50,1)*1000)
 		EndIf
 	Next
-	$j+=51
+	$j=$j+1+$numberOfIPs
 ;Firewall IP groups
-    For $i=$j To $j+6 Step 3
+	$numberOfIPs=6 ;divisible by 3!
+    For $i=$j To $j+$numberOfIPs Step 3
         $ii=10
 		$iiID=$i
 		$setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','Public IP Lookup',100)
-        FileWrite($DirGame&"\"&$iiID&"public","IP"&@CRLF&$iiID+1&@CRLF&$iiID+2)
+        FileWrite($DirGame&"\"&$iiID&"data","IP"&@CRLF&$iiID+1&@CRLF&$iiID+2)
 		FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
         $ii+=10
 		$iiID+=1
@@ -101,6 +104,29 @@ If Not FileExists($FileIPAddresses) Then
         _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','No Description',1000)
         FileWrite($DirGame&"\"&$iiID&"admin","FirewallActive,"&$iiID-1)
 	Next
+	$j=$j+3+$numberOfIPs
+;SSH IP groups
+	$numberOfIPs=6 ;divisible by 3!
+    For $i=$j To $j+$numberOfIPs Step 3
+        $ii=30
+		$iiID=$i
+		$setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
+        $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
+        _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','Public IP Lookup',100)
+        FileWrite($DirGame&"\"&$iiID&"data","IP"&@CRLF&$iiID+1&@CRLF&$iiID+2)
+		FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
+        $ii+=10
+		$iiID+=1
+        $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
+        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','unHidden','File Server',100)
+        FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
+		FileWrite($DirGame&"\"&$iiID&"data","SSH"&@CRLF&$iiID+1)
+        $ii+=10
+		$iiID+=1
+        $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
+        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','unHidden','No Description',500)
+        FileWrite($DirGame&"\"&$iiID&"admin","SSHActive,"&$iiID-1)
+	Next
 
 ;SSH IP groups
 
@@ -109,15 +135,17 @@ If Not FileExists($FileIPAddresses) Then
 
 ;Public IP Lookup Data Files Setup
 	;Public Lookup Server 10
-	$File_PublicLookupServer10_Public=$DirGame&"\"&$IPID_PublicLookupServer10&"public" ; Public
+	$File_PublicLookupServer10_Public=$DirGame&"\"&$IPID_PublicLookupServer10&"data" ; Public
 	FileWrite($File_PublicLookupServer10_Public,"IP"&@CRLF)
 	FileWrite($File_PublicLookupServer10_Public,$IPID[$IPID_PublicLookupServer20][1]&@CRLF)
 	$File_PublicLookupServer10_Admin=$DirGame&"\"&$IPID_PublicLookupServer10&"admin" ; Admin
 	FileWrite($File_PublicLookupServer10_Admin,"password,no-trace"&@CRLF)
 
 	;Public Lookup Server 20
-	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"public" ;Public
+	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"data" ;Public
 	FileWrite($File_PublicLookupServer20_Public,"IP"&@CRLF)
+	$File_PublicLookupServer20_Admin=$DirGame&"\"&$IPID_PublicLookupServer10&"admin" ; Admin
+	FileWrite($File_PublicLookupServer20_Admin,"password,no-trace"&@CRLF)
 
 	;Auto ADD
 	For $q=1 To _FileCountLines($FileIPAddresses) Step 1
@@ -139,7 +167,7 @@ EndIf
 
 #EndRegion
 
-#Region ===== ===== Load/Create GUI Game
+#Region ===== ===== Load/Create GUI and Game
 
 ;----- GUI
 	$guiHight = 400
@@ -174,7 +202,7 @@ EndIf
 	$lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
 		GUICtrlSetFont(-1,8,600)
 	$top+=15
-	$buttonPublic=GUICtrlCreateButton("Public Content",5,$top,$guiButtonWidth,$guiButtonHight)
+	$buttonPublic=GUICtrlCreateButton("Files",5,$top,$guiButtonWidth,$guiButtonHight)
 	$LablePublic=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
 		GUICtrlSetColor(-1,$colorRED)
 		GUICtrlSetFont(-1,7,700)
@@ -221,7 +249,7 @@ While 1
 			ShellExecute(@ScriptFullPath)
 			Exit
 		Case $buttonPublic
-			_PublicData()
+			_DataFile()
 		Case $buttonAdmin
 			_AdminData()
 		Case $buttonDDOS
@@ -244,7 +272,7 @@ WEnd
 		$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
 		$_admindata=StringSplit($_adminDataFileRead1,",")
 		If Not FileExists($_adminDataFile) Then
-			GUICtrlSetData($LableAdmin,"No Admin File")
+			GUICtrlSetData($LableAdmin,"No Admin Login")
 			Return
 		EndIf
 
@@ -269,6 +297,8 @@ WEnd
 	;Firewall security
 		ElseIf $_admindata[1]="FirewallActive" Then
 			If $IPID[$_admindata[2]][8]="underAttack" Then
+				;Display
+				MsgBox(0,"Firewall","Firewall bypasssed and cracked..."&@CRLF&"Server cracked..."&@CRLF&"Done.")
 				GUICtrlSetData($LableAdmin,"Server and Firewall Server cracked!")
 					GUICtrlSetColor($LableAdmin,$colorGreen)
 				;Change the Server info to Owned
@@ -281,7 +311,6 @@ WEnd
 				_FileWriteToLine($DirGame&$_admindata[2]&"admin",1,"Owned",True)
 				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_admindata[2]),"underAttack","Safe")
 				_FileWriteToLine($FileIPAddresses,$_admindata[2],$_admindataString,True)
-				_BandwidthUpdate()
 			Else
 				GUICtrlSetData($LableAdmin,"There is a firewall in place")
 			EndIf
@@ -392,10 +421,10 @@ WEnd
 
 	EndFunc
 
-;----- PUBLIC DATA FILE READ and PROCCESS
-	Func _PublicData()
+;----- DATA FILE READ and PROCCESS
+	Func _DataFile()
 		If $_connectBool=False Then Return
-		$_publicDataFile=$DirGame&$_connectID&"public"
+		$_publicDataFile=$DirGame&$_connectID&"data"
 		$_publicDataFileRead=FileReadLine($_publicDataFile,1)
 
 	;IP File Found
@@ -416,7 +445,7 @@ WEnd
 
 			Next
 			If $_publicIPCount2=0 Then
-				GUICtrlSetData($LablePublic,"No new IP addresses found.")
+				GUICtrlSetData($LablePublic,"No new files found.")
 			Else
 				$Temp_GUI1=GUICreate("New IP Adresses",200,300,-1,-1,0x00800000)
 				$Temp_GUI1_LableIPAddresses=GUICtrlCreateLabel($_publicIPCount,3,5,190,225)
@@ -436,7 +465,7 @@ WEnd
 
 	;No Public Data File
 		Else
-			GUICtrlSetData($LablePublic,"No Public Data File Found.")
+			GUICtrlSetData($LablePublic,"No Files Found.")
 		EndIf
 	EndFunc
 #EndRegion
@@ -548,18 +577,14 @@ WEnd
 
 	EndFunc
 
-;----- Bandwidth Update
-	Func _BandwidthUpdate()
-		$gameBandwidthCalc=False
-		$gameBandwidthTotal=$gameBandwidthTotalDefault
-	EndFunc
-
 ;----- VIEW UPDATE FUNCTION
 	Func _ViewUpdate()
 
 		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 
 		_LoadIPTable()
+
+		$gameBandwidthTotal=$gameBandwidthTotalDefault
 
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
 			If $IPID[$i][4]="unHidden" Then
@@ -569,14 +594,10 @@ WEnd
 				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
 				If $IPID[$i][3]="Owned" Then
 					GUICtrlSetColor(-1,$colorGreen)
-					If $gameBandwidthCalc=False Then
-						$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
-					EndIf
+					$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
 				ElseIf $IPID[$i][8]="underAttack" Then
 					GUICtrlSetColor(-1,$colorOrange)
-					If $gameBandwidthCalc=False Then
-						$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
-					EndIf
+					$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
 				EndIf
 				GUICtrlSetBkColor(-1,$colorGray)
 			EndIf
