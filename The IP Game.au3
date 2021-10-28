@@ -1,8 +1,4 @@
-
-;=========================DELETE
-;DirRemove(@ScriptDir&"\Game\",1)
-;=========================DELETE
-Global $Version = "0.5.0.0 Firewall update"
+Global $Version = "0.5.0.1 Firewall update"
 
 #cs
 	    ===== ===== PLANNING
@@ -86,17 +82,23 @@ If Not FileExists($FileIPAddresses) Then
 	Next
 	$j+=51
 ;Firewall IP groups
-    For $i=$j To $j+6 Step 2
-        $ii=1
+    For $i=$j To $j+6 Step 3
+        $ii=10
 		$iiID=$i
-        $setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
+		$setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        _AddressWrite($IP_RandomAddress,$i,3,'NotOwned','unHidden','Firewall',100)
-        FileWrite($DirGame&"\"&$iiID&"admin","Firewall"&@CRLF&$iiID+1)
-        $ii+=1
+        _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','Public IP Lookup',100)
+        FileWrite($DirGame&"\"&$iiID&"public","IP"&@CRLF&$iiID+1&@CRLF&$iiID+2)
+		FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
+        $ii+=10
 		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        _AddressWrite($IP_RandomAddress,$i+1,3,'NotOwned','unHidden','No Description',1000)
+        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','Firewall',100)
+        FileWrite($DirGame&"\"&$iiID&"admin","Firewall"&@CRLF&$iiID+1)
+        $ii+=10
+		$iiID+=1
+        $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
+        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','No Description',1000)
         FileWrite($DirGame&"\"&$iiID&"admin","FirewallActive"&@CRLF&$iiID-1)
 	Next
 
@@ -111,7 +113,7 @@ If Not FileExists($FileIPAddresses) Then
 	FileWrite($File_PublicLookupServer10_Public,"IP"&@CRLF)
 	FileWrite($File_PublicLookupServer10_Public,$IPID[$IPID_PublicLookupServer20][1]&@CRLF)
 	$File_PublicLookupServer10_Admin=$DirGame&"\"&$IPID_PublicLookupServer10&"admin" ; Admin
-	FileWrite($File_PublicLookupServer10_Admin,"password,1,no-trace"&@CRLF)
+	FileWrite($File_PublicLookupServer10_Admin,"password,no-trace"&@CRLF)
 
 	;Public Lookup Server 20
 	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"public" ;Public
@@ -154,7 +156,8 @@ EndIf
 
 	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
 	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
-	$ButtonTest=GUICtrlCreateButton("TEST",5,$guiHight-30,75,25)
+	$ButtonTest=GUICtrlCreateButton("TEST",85,$guiHight-30,75,25)
+	$ButtonNewGame=GUICtrlCreateButton("NEW GAME",5,$guiHight-30,75,25)
 
 	;Left
 	$top=5
@@ -213,6 +216,10 @@ While 1
 			_Disconnect()
 		Case $ButtonTest
 			_ViewUpdate()
+		Case $ButtonNewGame
+			DirRemove(@ScriptDir&"\Game\",1)
+			ShellExecute(@ScriptFullPath)
+			Exit
 		Case $buttonPublic
 			_PublicData()
 		Case $buttonAdmin
@@ -245,7 +252,7 @@ WEnd
 	;Password Security
 		If $_admindata[1]="password" Then
 			$_admindataPasswordStrength=$_admindata[2]
-			If $_admindata[3]="trace" Then
+			If $_admindata[2]="trace" Then
 				$_admindataTrackActive=True
 			Else
 				$_admindataTrackActive=False
