@@ -2,7 +2,7 @@
 ;=========================DELETE
 ;DirRemove(@ScriptDir&"\Game\",1)
 ;=========================DELETE
-Global $Version = "0.4.1.0 Bandwidth update"
+Global $Version = "0.5.0.0 Firewall update"
 
 #cs
 	    ===== ===== PLANNING
@@ -31,7 +31,8 @@ Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
 Global $gameBandwidthCalc=False
-Global $gameBandwidthTotal=100
+Global $gameBandwidthTotalDefault=100
+Global $gameBandwidthTotal=$gameBandwidthTotalDefault
 Global $_connectID
 Global $lableConnectedIP
 Global $ii
@@ -85,16 +86,18 @@ If Not FileExists($FileIPAddresses) Then
 	Next
 	$j+=51
 ;Firewall IP groups
-    For $i=$j To $j+6 Step 2 ;might need to be in Step 1
+    For $i=$j To $j+6 Step 2
         $ii=1
+		$iiID=$i
         $setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         _AddressWrite($IP_RandomAddress,$i,3,'NotOwned','unHidden','Firewall',100)
-        FileWrite($DirGame&"\"&$i&"admin","Firewall"&@CRLF&$i+1)
+        FileWrite($DirGame&"\"&$iiID&"admin","Firewall"&@CRLF&$iiID+1)
         $ii+=1
+		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         _AddressWrite($IP_RandomAddress,$i+1,3,'NotOwned','unHidden','No Description',1000)
-        FileWrite($DirGame&"\"&$i&"admin","FirewallActive"&@CRLF&$i-1)
+        FileWrite($DirGame&"\"&$iiID&"admin","FirewallActive"&@CRLF&$iiID-1)
 	Next
 
 ;SSH IP groups
@@ -249,14 +252,33 @@ WEnd
 			EndIf
 
 			$_admindataHack=_passwordCracking($_admindataTrackActive)
-			If $_admindataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Open",True)
+			If $_admindataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Owned",True)
 			$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
+			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
 			GUICtrlSetData($LableAdmin,"Hello System Administrator!")
 			GUICtrlSetColor($LableAdmin,$colorGreen)
 
 	;Firewall security
 		ElseIf $_adminDataFileRead1="FirewallActive" Then
-			GUICtrlSetData($LableAdmin,"There is a firewall in place")
+			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
+			If $IPID[$_adminDataFileRead2][8]="underAttack" Then
+				GUICtrlSetData($LableAdmin,"Server and Firewall Server cracked!")
+					GUICtrlSetColor($LableAdmin,$colorGreen)
+				;Change the Server info to Owned
+				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+				_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
+				_FileWriteToLine($_adminDataFile,1,"Owned",True)
+				;Change the Firewall Server info
+				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_adminDataFileRead2),"NotOwned","Owned")
+				_FileWriteToLine($FileIPAddresses,$_adminDataFileRead2,$_admindataString,True)
+				_FileWriteToLine($DirGame&$_adminDataFileRead2&"admin",1,"Owned",True)
+				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_adminDataFileRead2),"underAttack","Safe")
+				_FileWriteToLine($FileIPAddresses,$_adminDataFileRead2,$_admindataString,True)
+				_BandwidthUpdate()
+			Else
+				GUICtrlSetData($LableAdmin,"There is a firewall in place")
+			EndIf
 
 	;Is a Firewall
 		ElseIf $_adminDataFileRead1="Firewall" Then
@@ -279,11 +301,7 @@ WEnd
 
 	;Amend Addresses File AFTER commands issued (Must be at the end of this function)
 		If $_adminDataFileRead1="Open" Then
-			$_adminDataFileRead2=FileReadLine($_adminDataFile,2)
-			;If $_adminDataFileRead2= Something then next step
-			_FileWriteToLine($_adminDataFile,1,"Owned",True)
-			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
-			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
+
 		EndIf
 
 
@@ -437,7 +455,7 @@ WEnd
 		EndIf
 	;Check if attack possible
 		If FileExists($_DDOSadminFile) Then
-			If Not FileReadLine($_DDOSadminFile,1) = "Firewall" Then
+			If FileReadLine($_DDOSadminFile,1) <> "Firewall" Then
 				GUICtrlSetData($LableDDOS,"Only Firewalls can be attacked.")
 				Return
 			EndIf
@@ -523,7 +541,13 @@ WEnd
 
 	EndFunc
 
-;--- VIEW UPDATE FUNCTION
+;----- Bandwidth Update
+	Func _BandwidthUpdate()
+		$gameBandwidthCalc=False
+		$gameBandwidthTotal=$gameBandwidthTotalDefault
+	EndFunc
+
+;----- VIEW UPDATE FUNCTION
 	Func _ViewUpdate()
 
 		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
@@ -538,6 +562,9 @@ WEnd
 				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
 				If $IPID[$i][3]="Owned" Then
 					GUICtrlSetColor(-1,$colorGreen)
+					If $gameBandwidthCalc=False Then
+						$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
+					EndIf
 				ElseIf $IPID[$i][8]="underAttack" Then
 					GUICtrlSetColor(-1,$colorOrange)
 					If $gameBandwidthCalc=False Then
@@ -553,7 +580,7 @@ WEnd
 		If $gameBandwidthTotal<1000 Then
 			GUICtrlSetData($LableBandwaidthTotal,$gameBandwidthTotal&" MB/s")
 		Else
-			GUICtrlSetData($LableBandwaidthTotal,$gameBandwidthTotal&" GB/s")
+			GUICtrlSetData($LableBandwaidthTotal,$gameBandwidthTotal/1000&" GB/s")
 		EndIf
 
 		$gameBandwidthCalc=True ;Bandwidth has been calculated and does not need to happen again
