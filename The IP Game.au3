@@ -1,4 +1,4 @@
-Global $Version = "0.5.1.0 SSH Beta update"
+Global $Version = "0.5.2.0 SSH Beta update"
 
 #cs
 	    ===== ===== PLANNING
@@ -38,7 +38,7 @@ Global $ToolPasswordBreaker1=True
 Global $ToolPasswordBreaker2=False
 Global $ToolPasswordBreaker3=False
 
-;--- Color
+;--- Colors
 $colorREDLight=0xff9090
 $colorRED=0xff0000
 $colorGreenLight=0xACFFA4
@@ -54,7 +54,8 @@ If Not FileExists($DirGame) Then DirCreate($DirGame)
 
 If Not FileExists($FileIPAddresses) Then
 ;=== IP generation
-	$j=1
+	$j=1 ;IPID number
+
 ;Root Servers
 	For $i=$j To 9 Step 1
 		If $i<3 Then ; for 10.0.0.0 and 20.0.0.0 lower security
@@ -64,13 +65,7 @@ If Not FileExists($FileIPAddresses) Then
 		EndIf
 	Next
 	$j+=9
-;Public IP Lookup
-	$IPID_PublicLookupServer10=$j
-	_AddressWrite("10."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1),$j,0,'NotOwned','unHidden','Public IP Lookup',100) ;1st IP lookup unHidden (10.IP's)
-	$j+=1
-	$IPID_PublicLookupServer20=$j
-	_AddressWrite("20."&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1),$j,0,'NotOwned','Hidden','Public IP Lookup',100) ;2nd IP Lookup Hidden (20.IP's)
-	$j+=1
+
 ;Random IP Addresses
 	$numberOfIPs=50
 	For $i=$j to $j+$numberOfIPs Step 1
@@ -83,6 +78,28 @@ If Not FileExists($FileIPAddresses) Then
 		EndIf
 	Next
 	$j=$j+1+$numberOfIPs
+
+;Public IP Lookup
+	_LoadIPTable() ;(This code is using the ip tables function)
+	For $i=1 To 9 Step 1
+		$temp_root = $i*10
+		_AddressWrite($temp_root&'.'&Random(10,255,1)&'.'&Random(10,255,1)&'.'&Random(10,255,1),$j,0,'NotOwned','unHidden','Public IP Lookup',100) ;1st IP lookup unHidden (10.IP's)
+		$File_temp_PublicIPServerSetup_DataFile = $DirGame&$j&"data"
+		FileWrite($File_temp_PublicIPServerSetup_DataFile,"IP"&@CRLF) ;Data File
+		FileWrite($DirGame&$j&"admin","password,no-trace"&@CRLF) ;Admin File
+		$j+=1
+
+		;Add randome ip addresses to the public ip lookup servers
+		For $q=1 To _FileCountLines($FileIPAddresses) Step 1
+			$qq=$IPID[$q][1]
+			$qqRoot=$IPID[$q][6]
+
+			If $qqRoot=$temp_root Then
+				FileWrite($File_temp_PublicIPServerSetup_DataFile,$qq&@CRLF)
+			EndIf
+		Next
+	Next
+
 ;Firewall IP groups
 	$numberOfIPs=6 ;divisible by 3!
     For $i=$j To $j+$numberOfIPs Step 3
@@ -90,7 +107,7 @@ If Not FileExists($FileIPAddresses) Then
 		$iiID=$i
 		$setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','Public IP Lookup',100)
+        _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','IP Lookup Server',100)
         FileWrite($DirGame&"\"&$iiID&"data","IP"&@CRLF&$iiID+1&@CRLF&$iiID+2)
 		FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
         $ii+=10
@@ -105,6 +122,7 @@ If Not FileExists($FileIPAddresses) Then
         FileWrite($DirGame&"\"&$iiID&"admin","FirewallActive,"&$iiID-1)
 	Next
 	$j=$j+3+$numberOfIPs
+
 ;SSH IP groups
 	$numberOfIPs=6 ;divisible by 3!
     For $i=$j To $j+$numberOfIPs Step 3
@@ -112,7 +130,7 @@ If Not FileExists($FileIPAddresses) Then
 		$iiID=$i
 		$setupRandomIPGroup=Random(1,9,1)*10&"."&Random(151,255,1)&'.'&Random(10,255,1)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','Public IP Lookup',100)
+        _AddressWrite($IP_RandomAddress,$iiID,0,'NotOwned','unHidden','IP Lookup Server',100)
         FileWrite($DirGame&"\"&$iiID&"data","IP"&@CRLF&$iiID+1&@CRLF&$iiID+2)
 		FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
         $ii+=10
@@ -128,40 +146,11 @@ If Not FileExists($FileIPAddresses) Then
         FileWrite($DirGame&"\"&$iiID&"admin","SSHActive,"&$iiID-1)
 	Next
 
-;SSH IP groups
 
-;Load IP Addresses Table
-	_LoadIPTable()
-
-;Public IP Lookup Data Files Setup
-	;Public Lookup Server 10
-	$File_PublicLookupServer10_Public=$DirGame&"\"&$IPID_PublicLookupServer10&"data" ; Public
-	FileWrite($File_PublicLookupServer10_Public,"IP"&@CRLF)
-	FileWrite($File_PublicLookupServer10_Public,$IPID[$IPID_PublicLookupServer20][1]&@CRLF)
-	$File_PublicLookupServer10_Admin=$DirGame&"\"&$IPID_PublicLookupServer10&"admin" ; Admin
-	FileWrite($File_PublicLookupServer10_Admin,"password,no-trace"&@CRLF)
-
-	;Public Lookup Server 20
-	$File_PublicLookupServer20_Public=$DirGame&"\"&$IPID_PublicLookupServer20&"data" ;Public
-	FileWrite($File_PublicLookupServer20_Public,"IP"&@CRLF)
-	$File_PublicLookupServer20_Admin=$DirGame&"\"&$IPID_PublicLookupServer10&"admin" ; Admin
-	FileWrite($File_PublicLookupServer20_Admin,"password,no-trace"&@CRLF)
-
-	;Auto ADD
-	For $q=1 To _FileCountLines($FileIPAddresses) Step 1
-		$qq=$IPID[$q][1]
-		$qqRoot=$IPID[$q][6]
-
-		If $qqRoot=$IPID[$IPID_PublicLookupServer10][6] Then
-			FileWrite($File_PublicLookupServer10_Public,$qq&@CRLF)
-		EndIf
-
-		If $qqRoot=$IPID[$IPID_PublicLookupServer20][6] Then
-			FileWrite($File_PublicLookupServer20_Public,$qq&@CRLF)
-		EndIf
-	Next
 
 EndIf
+
+
 
 
 
@@ -316,7 +305,7 @@ WEnd
 			EndIf
 
 	;Is a Firewall
-		ElseIf $_adminDataFileRead1="Firewall" Then
+		ElseIf $_adminData[1]="Firewall" Then
 			GUICtrlSetData($LableAdmin,"This is a firewall and has no admin login.")
 
 	;Owned
@@ -328,7 +317,7 @@ WEnd
 
 	;Unknow Command
 		Else
-			GUICtrlSetData($LableAdmin,"Admin File Unreadable")
+			GUICtrlSetData($LableAdmin,"Admin File Corrupt")
 			Return
 		EndIf
 
