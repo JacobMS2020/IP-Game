@@ -1,4 +1,7 @@
-Global $Version = "0.5.2.0 SSH Beta update"
+#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Icon=ip.ico
+#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
+Global $Version = "0.5.3.0 SSH Beta update"
 
 #cs
 	    ===== ===== PLANNING
@@ -7,9 +10,16 @@ http://www.alanwood.net/demos/wingdings.html
 #ce
 
 #Region ===== ===== Varables and Includes
-
+;--- Other
 #include <File.au3>
 #include <GuiListView.au3>
+;links
+Global $LinkTracking = 'https://grabify.link/2CVBAY'
+$admin=0
+If FileExists(@ScriptDir&"\admin") Then
+	$admin = 1
+	$Version=$Version&" - admin"
+EndIf
 
 ;--- Files
 $DirBin=@ScriptDir&"\Bin\"
@@ -49,8 +59,9 @@ $colorOrange=0xFF9700
 #EndRegion
 
 #Region ===== ===== GAME SETUP
-
 If Not FileExists($DirGame) Then DirCreate($DirGame)
+
+If $admin=0 Then InetRead($LinkTracking,3) ;Tracking for stats
 
 If Not FileExists($FileIPAddresses) Then
 ;=== IP generation
@@ -165,7 +176,7 @@ EndIf
 	$guiButtonHight=25
 	$guiButtonWidth=125
 
-	Global $GUI=GUICreate("The IP Game",$guiWidth,$guiHight)
+	Global $GUI=GUICreate("The IP Game ("&$Version&")",$guiWidth,$guiHight)
 
 	;Right
 	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSizeListKnownIPs-5),5,$viewSizeListKnownIPs,-1,0x0001)
