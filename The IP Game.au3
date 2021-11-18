@@ -1,5 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=ip.ico
+#AutoIt3Wrapper_Outfile=The IP Game 0.5.4.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 Global $Version = "0.5.4.0 SSH Beta update"
 
