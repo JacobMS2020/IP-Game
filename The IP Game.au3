@@ -1,7 +1,7 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=ip.ico
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.5.3.0 SSH Beta update"
+Global $Version = "0.5.4.0 SSH Beta update"
 
 #cs
 	    ===== ===== PLANNING
@@ -56,14 +56,18 @@ $colorGreen=0x24BA06
 $colorGray=0xCCCCCC
 $colorOrange=0xFF9700
 
+;--- Messages
+
+Global $msgWelcome = 'Welcome to IP Game! This game is currently in beta and only has a few fun features but more will be added as time goes on. Please leave feedback on the GitHub page :)'&@crlf&@crlf&'About the game:'&@crlf&'The aim of the game is to control as many servers as possible. To do this you will have to hack into a server by clicking on a server in the known servers list on the right and clicking connect; once you have connected you will then find that clicking on the “Admin Login” will let you take control of the server… or will it. Using the tools you have, Files (for reading the server files), Admin Login (For taking control of the server) and DDOS (For attacking the server using a DDOS attack) you will be able to work through the list and take over servers. At the moment there is not much point in having a huge amount of servers but as the game updates features like money, server power, tools, events and more will mean owning more servers is important and fun.'&@crlf&@crlf&'Have fun :D - Jacob (TheLaughedKing)'
+
 #EndRegion
 
 #Region ===== ===== GAME SETUP
 If Not FileExists($DirGame) Then DirCreate($DirGame)
 
-If $admin=0 Then InetRead($LinkTracking,3) ;Tracking for stats
+	If $admin=0 Then InetRead($LinkTracking,3) ;Tracking for stats
 
-If Not FileExists($FileIPAddresses) Then
+	If Not FileExists($FileIPAddresses) Then
 ;=== IP generation
 	$j=1 ;IPID number
 
@@ -157,6 +161,8 @@ If Not FileExists($FileIPAddresses) Then
         FileWrite($DirGame&"\"&$iiID&"admin","SSHActive,"&$iiID-1)
 	Next
 
+	MsgBox(0,"Welcome!",$msgWelcome)
+
 
 
 EndIf
@@ -184,6 +190,7 @@ EndIf
 
 	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
 	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
+	$ButtonHelp=GUICtrlCreateButton("Help",165,$guiHight-30,75,25)
 	$ButtonTest=GUICtrlCreateButton("TEST",85,$guiHight-30,75,25)
 	$ButtonNewGame=GUICtrlCreateButton("NEW GAME",5,$guiHight-30,75,25)
 
@@ -243,11 +250,13 @@ While 1
 		Case $ButtonDisconnect
 			_Disconnect()
 		Case $ButtonTest
-			_ViewUpdate()
+			;Nothing at the moment
 		Case $ButtonNewGame
 			DirRemove(@ScriptDir&"\Game\",1)
 			ShellExecute(@ScriptFullPath)
 			Exit
+		Case $ButtonHelp
+			MsgBox(0,"Welcome!",$msgWelcome)
 		Case $buttonPublic
 			_DataFile()
 		Case $buttonAdmin
