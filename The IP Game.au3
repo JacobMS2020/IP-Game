@@ -2,13 +2,17 @@
 #AutoIt3Wrapper_Icon=ip.ico
 #AutoIt3Wrapper_Outfile=The IP Game 0.5.4.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.5.4.0 SSH Beta update"
+Global $Version = "0.5.5.0 SSH Update"
 
 #cs
 	    ===== ===== PLANNING
 Font = Wingdings
 http://www.alanwood.net/demos/wingdings.html
 #ce
+
+;       | 0 |  1 |       2       |   3   |    4  |      5     |       6	    |	   7	|     8
+;       |IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack
+; If you add to this list Change the _LoadIPTable() and _AddressWrite() functions
 
 #Region ===== ===== Varables and Includes
 ;--- Other
@@ -154,7 +158,7 @@ If Not FileExists($DirGame) Then DirCreate($DirGame)
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
         _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','unHidden','File Server',100)
         FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
-		FileWrite($DirGame&"\"&$iiID&"data","SSH"&@CRLF&$iiID+1)
+		FileWrite($DirGame&"\"&$iiID&"data","SSH,"&$iiID+1)
         $ii+=10
 		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
@@ -177,9 +181,9 @@ EndIf
 #Region ===== ===== Load/Create GUI and Game
 
 ;----- GUI
-	$guiHight = 400
+	$guiHight = 450
 	$guiWidth = 800
-	$viewSizeListKnownIPs=420
+	$viewSizeListKnownIPs=440
 	$guiButtonHight=25
 	$guiButtonWidth=125
 
@@ -187,7 +191,7 @@ EndIf
 
 	;Right
 	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSizeListKnownIPs-5),5,$viewSizeListKnownIPs,-1,0x0001)
-	$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSizeListKnownIPs-5,20,$viewSizeListKnownIPs,$guiHight-60)
+	$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSizeListKnownIPs-5,20,$viewSizeListKnownIPs,$guiHight-90)
 
 	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
 	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
@@ -209,6 +213,7 @@ EndIf
 	$lableConnectedTo=GUICtrlCreateLabel("Connected To: ",5,$top,80)
 	$lableConnectedIP=GUICtrlCreateLabel("",90,$top,90,30)
 		GUICtrlSetFont(-1,8,600)
+		GUICtrlSetColor(-1,$colorGreen)
 	$top+=15
 	$buttonPublic=GUICtrlCreateButton("Files",5,$top,$guiButtonWidth,$guiButtonHight)
 	$LablePublic=GUICtrlCreateLabel("",10+$guiButtonWidth,$top+2,$guiButtonWidth,25)
@@ -273,14 +278,14 @@ WEnd
 
 #Region ===== ===== FUNCTIONS
 
-#Region --- --- Data files and functions
+#Region --- --- Admin & Password Data files and functions
 ;----- ADMIN DATA FILE READ and PROCCESS
 	Func _AdminData()
 		If $_connectBool=False Then Return
 		;File Data
 		$_adminDataFile=$DirGame&$_connectID&"admin"
 		$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
-		$_admindata=StringSplit($_adminDataFileRead1,",")
+		$_adminData=StringSplit($_adminDataFileRead1,",")
 		If Not FileExists($_adminDataFile) Then
 			GUICtrlSetData($LableAdmin,"No Admin Login")
 			Return
@@ -288,39 +293,39 @@ WEnd
 
 	;----- start proccessing the admin file
 	;Password Security
-		If $_admindata[1]="password" Then
-			$_admindataPasswordStrength=$_admindata[2]
-			If $_admindata[2]="trace" Then
-				$_admindataTrackActive=True
+		If $_adminData[1]="password" Then
+			$_adminDataPasswordStrength=$_adminData[2]
+			If $_adminData[2]="trace" Then
+				$_adminDataTrackActive=True
 			Else
-				$_admindataTrackActive=False
+				$_adminDataTrackActive=False
 			EndIf
 
-			$_admindataHack=_passwordCracking($_admindataTrackActive)
-			If $_admindataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Owned",True)
+			$_adminDataHack=_passwordCracking($_adminDataTrackActive)
+			If $_adminDataHack="Compeate" Then _FileWriteToLine($_adminDataFile,1,"Owned",True)
 			$_adminDataFileRead1=FileReadLine($_adminDataFile,1)
-			$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
-			_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
+			$_adminDataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+			_FileWriteToLine($FileIPAddresses,$_connectID,$_adminDataString,True)
 			GUICtrlSetData($LableAdmin,"Hello System Administrator!")
 			GUICtrlSetColor($LableAdmin,$colorGreen)
 
 	;Firewall security
-		ElseIf $_admindata[1]="FirewallActive" Then
-			If $IPID[$_admindata[2]][8]="underAttack" Then
+		ElseIf $_adminData[1]="FirewallActive" Then
+			If $IPID[$_adminData[2]][8]="underAttack" Then
 				;Display
 				MsgBox(0,"Firewall","Firewall bypasssed and cracked..."&@CRLF&"Server cracked..."&@CRLF&"Done.")
 				GUICtrlSetData($LableAdmin,"Server and Firewall Server cracked!")
 					GUICtrlSetColor($LableAdmin,$colorGreen)
 				;Change the Server info to Owned
-				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
-				_FileWriteToLine($FileIPAddresses,$_connectID,$_admindataString,True)
+				$_adminDataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+				_FileWriteToLine($FileIPAddresses,$_connectID,$_adminDataString,True)
 				_FileWriteToLine($_adminDataFile,1,"Owned",True)
 				;Change the Firewall Server info
-				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_admindata[2]),"NotOwned","Owned")
-				_FileWriteToLine($FileIPAddresses,$_admindata[2],$_admindataString,True)
-				_FileWriteToLine($DirGame&$_admindata[2]&"admin",1,"Owned",True)
-				$_admindataString=StringReplace(FileReadLine($FileIPAddresses,$_admindata[2]),"underAttack","Safe")
-				_FileWriteToLine($FileIPAddresses,$_admindata[2],$_admindataString,True)
+				$_adminDataString=StringReplace(FileReadLine($FileIPAddresses,$_adminData[2]),"NotOwned","Owned")
+				_FileWriteToLine($FileIPAddresses,$_adminData[2],$_adminDataString,True)
+				_FileWriteToLine($DirGame&$_adminData[2]&"admin",1,"Owned",True)
+				$_adminDataString=StringReplace(FileReadLine($FileIPAddresses,$_adminData[2]),"underAttack","Safe")
+				_FileWriteToLine($FileIPAddresses,$_adminData[2],$_adminDataString,True)
 			Else
 				GUICtrlSetData($LableAdmin,"There is a firewall in place")
 			EndIf
@@ -329,10 +334,25 @@ WEnd
 		ElseIf $_adminData[1]="Firewall" Then
 			GUICtrlSetData($LableAdmin,"This is a firewall and has no admin login.")
 
+	;SSH Security
+		ElseIf $_adminData[1]='SSHActive' Then
+			If $IPID[$_adminData[2]][3]='Owned' then
+				MsgBox(0,"SSH certificate Found","The SSH certificate for this server was found on server "&$IPID[$_adminData[2]][0]&" (you own this server)")
+				$_adminDataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
+				_FileWriteToLine($FileIPAddresses,$_connectID,$_adminDataString,True)
+				_FileWriteToLine($_adminDataFile,1,"Owned",True)
+				GUICtrlSetData($LableAdmin,"Hello System Administrator!")
+				GUICtrlSetColor($LableAdmin,$colorGreen)
+			Else
+				GUICtrlSetData($LableAdmin,'SSH Security is Active')
+				Return
+			EndIf
+
 	;Owned
 		ElseIf $_adminDataFileRead1="Owned" Then
 			GUICtrlSetData($LableAdmin,"Hello System Administrator!")
 			GUICtrlSetColor($LableAdmin,$colorGreen)
+			Return
 
 
 
@@ -431,14 +451,18 @@ WEnd
 
 	EndFunc
 
+#EndRegion
+
 ;----- DATA FILE READ and PROCCESS
 	Func _DataFile()
 		If $_connectBool=False Then Return
 		$_publicDataFile=$DirGame&$_connectID&"data"
+		$_publicDataAdminFile=$DirGame&$_connectID&"admin"
 		$_publicDataFileRead=FileReadLine($_publicDataFile,1)
+		$_publicDataFileRead=StringSplit($_publicDataFileRead,",")
 
 	;IP File Found
-		If $_publicDataFileRead="IP" Then
+		If $_publicDataFileRead[1]="IP" Then
 			$_publicIPCount="New IP Addresses Found:"&@CRLF
 			$_publicIPCount2=0
 			For $i=2 to _FileCountLines($_publicDataFile) Step 1
@@ -473,12 +497,31 @@ WEnd
 				_ViewUpdate()
 			EndIf
 
+		ElseIf $_publicDataFileRead[1]="SSH" Then
+			If $IPID[$_connectID][3] = 'Owned' Then
+				$Temp_GUI1=GUICreate("SSH certificate found",200,300,-1,-1,0x00800000)
+				GUICtrlCreateLabel('An SSH certificate has been found for:',3,5,190,225)
+					GUICtrlSetFont(-1,7,700)
+				GUICtrlCreateLabel('IP: '&$IPID[$_publicDataFileRead[2]][0],3,20,190,225)
+				$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Certificate",3,240,190,25)
+				GUISetState(@SW_SHOW, $Temp_GUI1)
+				While 1
+					$GUI_MSG=GUIGetMsg()
+					Switch $GUI_MSG
+						Case $Temp_GUI1_ButtonAdd
+							ExitLoop
+					EndSwitch
+				WEnd
+				GUIDelete($Temp_GUI1)
+			Else
+				GUICtrlSetData($LablePublic,"Server is not owned.")
+			EndIf
+
 	;No Public Data File
 		Else
 			GUICtrlSetData($LablePublic,"No Files Found.")
 		EndIf
 	EndFunc
-#EndRegion
 
 ;----- DDOS
 	Func _DDOS()
@@ -535,7 +578,6 @@ WEnd
 		GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
 		GUICtrlSetData($lableConnectedIP,$IPID[$_connectID][0])
 		If $IPID[$_connectID][8]="underAttack" Then GUICtrlSetData($buttonDDOS,"Stop DDOS")
-		_ViewUpdate()
 
 	EndFunc
 
