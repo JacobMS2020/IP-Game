@@ -1,23 +1,34 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=ip.ico
-#AutoIt3Wrapper_Outfile=The IP Game 0.5.4.exe
+#AutoIt3Wrapper_Outfile=The IP Game 0.6.0.0.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.5.5.0 SSH Update"
+Global $Version = "0.6.0.0 View Update"
 
-#cs
-	    ===== ===== PLANNING
+#cs ===== ===== PLANNING
+
 Font = Wingdings
 http://www.alanwood.net/demos/wingdings.html
 #ce
 
-;       | 0 |  1 |       2       |   3   |    4  |      5     |       6	    |	   7	|     8
-;       |IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack
-; If you add to this list Change the _LoadIPTable() and _AddressWrite() functions
+#cs ----- Coding HELP - IPID and more
+
+--- IPID
+| 0 |  1 |       2       |   3   |    4  |      5     |       6	    |	   7	|     8       |     9    |
+|IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack  | Favorite |
+
+If you add to this list Change the _LoadIPTable() and _AddressWrite() functions
+
+--- IP Address creation
+_AddressWrite( | IP(*.*.*.*) | ID(program) | Security(0-6) | Owned(NotOwned) | Hidden(NotHidden) | Decription "" | Bandwidth(int) | Default=Safe(UnderAttack) | Default=NotFavorite(Favorite)
+#ce
 
 #Region ===== ===== Varables and Includes
 ;--- Other
 #include <File.au3>
 #include <GuiListView.au3>
+#include <GUIConstants.au3>
+#include <GUIConstantsEx.au3>
+
 ;links
 Global $LinkTracking = 'https://grabify.link/2CVBAY'
 $admin=0
@@ -33,15 +44,12 @@ $FileIPAddresses=$DirGame&"ip_addresses"
 $FileSSHcertificats=$DirGame&"SSH_certificats"
 
 ;--- Vars
-;                    | 0 |  1 |       2       |   3   |    4  |      5     |       6	 |	   7	 |     8
-Global $IPID[999][9] ;IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack
-;					 | Change _LoadIPTable() and _AddressWrite() functions when this is added to
-
-;_AddressWrite( | IP(*.*.*.*) | ID(program) | Security(0-6) | Owned(NotOwned) | Hidden(NotHidden) | Decription "" | Bandwidth(int) | Default=Safe(UnderAttack)
+Global $IPID[999][99] ;See line 13 / Coding Help for more info
 
 Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
+Global $ListViewFilter=False
 Global $gameBandwidthCalc=False
 Global $gameBandwidthTotalDefault=100
 Global $gameBandwidthTotal=$gameBandwidthTotalDefault
@@ -63,7 +71,7 @@ $colorOrange=0xFF9700
 
 ;--- Messages
 
-Global $msgWelcome = 'Welcome to IP Game! This game is currently in beta and only has a few fun features but more will be added as time goes on. Please leave feedback on the GitHub page :)'&@crlf&@crlf&'About the game:'&@crlf&'The aim of the game is to control as many servers as possible. To do this you will have to hack into a server by clicking on a server in the known servers list on the right and clicking connect; once you have connected you will then find that clicking on the “Admin Login” will let you take control of the server… or will it. Using the tools you have, Files (for reading the server files), Admin Login (For taking control of the server) and DDOS (For attacking the server using a DDOS attack) you will be able to work through the list and take over servers. At the moment there is not much point in having a huge amount of servers but as the game updates features like money, server power, tools, events and more will mean owning more servers is important and fun.'&@crlf&@crlf&'Have fun :D - Jacob (TheLaughedKing)'
+Global $msgWelcome = 'Welcome to IP Game! This game is currently in beta and only has a few fun features but more will be added as time goes on. Please leave feedback on the GitHub page :)'&@crlf&@crlf&'About the game:'&@crlf&'The aim of the game is to control as many servers as possible. To do this you will have to hack into a server by clicking on a server in the known servers list on the right and clicking connect; once you have connected you will then find that clicking on the “Admin Login” will let you take control of the server… or will it. Using the tools you have, Files (for reading the server files), Admin Login (For taking control of the server) and DDOS (For attacking the server using a DDOS attack) you will be able to work through the list and take over servers. At the moment there is not much point in having a huge amount of servers but as the game updates features like money, server power, tools, events and more will mean owning more servers is important and fun. At the moment try to gain as must bandwith as possible.'&@crlf&@crlf&'Have fun :D - Jacob (TheLaughedKing)'
 
 #EndRegion
 
@@ -156,17 +164,17 @@ If Not FileExists($DirGame) Then DirCreate($DirGame)
         $ii+=10
 		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','unHidden','File Server',100)
+        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','File Server',100)
         FileWrite($DirGame&"\"&$iiID&"admin","password,no-trace")
 		FileWrite($DirGame&"\"&$iiID&"data","SSH,"&$iiID+1)
         $ii+=10
 		$iiID+=1
         $IP_RandomAddress=$setupRandomIPGroup&'.'&$ii
-        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','unHidden','No Description',500)
+        _AddressWrite($IP_RandomAddress,$iiID,3,'NotOwned','Hidden','No Description',500)
         FileWrite($DirGame&"\"&$iiID&"admin","SSHActive,"&$iiID-1)
 	Next
 
-	MsgBox(0,"Welcome!",$msgWelcome)
+	If $admin=0 Then MsgBox(0,"Welcome!",$msgWelcome)
 
 
 
@@ -180,27 +188,39 @@ EndIf
 
 #Region ===== ===== Load/Create GUI and Game
 
-;----- GUI
+;----- GUI setup
 	$guiHight = 450
 	$guiWidth = 800
-	$viewSizeListKnownIPs=440
+	$viewSize_KnownIPs=480
 	$guiButtonHight=25
 	$guiButtonWidth=125
 
 	Global $GUI=GUICreate("The IP Game ("&$Version&")",$guiWidth,$guiHight)
+	GUISetFont(9,0,0,"Arial")
 
-	;Right
-	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSizeListKnownIPs-5),5,$viewSizeListKnownIPs,-1,0x0001)
-	$ViewKnownIPs=GUICtrlCreateListView("IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSizeListKnownIPs-5,20,$viewSizeListKnownIPs,$guiHight-90)
+	GUICtrlCreateTab(0,0,$GUIWidth,$GUIHight)
 
+	#Region ----- Server Control
+GUICtrlCreateTabItem("Server Managment")
+
+; Right
+	$top=25
+	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSize_KnownIPs-5),$top,$viewSize_KnownIPs,-1,0x0001)
+	$ViewKnownIPs=GUICtrlCreateListView("Fav|IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSize_KnownIPs-5,$top+20,$viewSize_KnownIPs,$guiHight-80)
+	;to the right of the list view
 	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
-	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-160,$guiHight-30,75,25)
-	$ButtonHelp=GUICtrlCreateButton("Help",165,$guiHight-30,75,25)
-	$ButtonTest=GUICtrlCreateButton("TEST",85,$guiHight-30,75,25)
-	$ButtonNewGame=GUICtrlCreateButton("NEW GAME",5,$guiHight-30,75,25)
+	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-155,$guiHight-30,75,25)
+	$ButtonFavorite=GUICtrlCreateButton('★',$guiWidth-160-25,$guiHight-30,30)
+		GUICtrlSetFont(-1,16)
+	;to the left of the list view
+	$ButtonFilter=GUICtrlCreateButton("Filter (OFF)",$guiWidth-$viewSize_KnownIPs-5,$guiHight-30,75)
+	$ComboListViewGroups=GUICtrlCreateCombo("None",$guiWidth-$viewSize_KnownIPs+75,$guiHight-28,150,-1,$CBS_DROPDOWNLIST)
+		GUICtrlSetData(-1,"Favorite|Owned|IP Lookup Server|Public IP Lookup|Root Servers|Firewalls|File Servers")
 
-	;Left
-	$top=5
+
+
+; Left
+	$top=25
 	GUICtrlCreateLabel("Your IP Address:",5,$top,100,25)
 	$IPYourIP="60.180.55.23"
 	$Lable_YourIP=GUICtrlCreateLabel($IPYourIP,100,$top)
@@ -235,7 +255,22 @@ EndIf
 	$top+=20
 	$buttonInstallTool=GUICtrlCreateButton("Install Tools",5,$top,$guiButtonWidth,$guiButtonHight)
 	$top+=30
-	$LableToolsList=GUICtrlCreateLabel(" No tools installed.",5,$top,$guiButtonWidth,100,0x00800000)
+	$LableToolsList=GUICtrlCreateLabel(" You have all the tools you need for now.",5,$top,$guiButtonWidth,100,0x00800000)
+
+	;Bottom buttons
+	$ButtonHelp=GUICtrlCreateButton("Help",165,$guiHight-30,75,25)
+	$ButtonTest=GUICtrlCreateButton("TEST",85,$guiHight-30,75,25)
+	$ButtonNewGame=GUICtrlCreateButton("NEW GAME",5,$guiHight-30,75,25)
+
+	#EndRegion
+
+	#Region ----- Money and Contracts
+GUICtrlCreateTabItem("Money and Contracts")
+
+
+
+
+	#EndRegion
 
 ;----- Load Game
 	_ViewUpdate()
@@ -255,8 +290,21 @@ While 1
 			_Connect()
 		Case $ButtonDisconnect
 			_Disconnect()
+		Case $ButtonFavorite
+			_Fav()
+		Case $ButtonFilter
+			If $ListViewFilter=False Then
+				GUICtrlSetData($ButtonFilter,"Filter (ON)")
+				$ListViewFilter=True
+			Else
+				GUICtrlSetData($ButtonFilter,"Filter (OFF)")
+				$ListViewFilter=False
+			EndIf
+			_ViewUpdate()
+		Case $ComboListViewGroups
+			_ViewUpdate()
 		Case $ButtonTest
-			;Nothing at the moment
+			_ViewUpdate()
 		Case $ButtonNewGame
 			DirRemove(@ScriptDir&"\Game\",1)
 			ShellExecute(@ScriptFullPath)
@@ -278,7 +326,6 @@ WEnd
 
 #Region ===== ===== FUNCTIONS
 
-#Region --- --- Admin & Password Data files and functions
 ;----- ADMIN DATA FILE READ and PROCCESS
 	Func _AdminData()
 		If $_connectBool=False Then Return
@@ -313,7 +360,25 @@ WEnd
 		ElseIf $_adminData[1]="FirewallActive" Then
 			If $IPID[$_adminData[2]][8]="underAttack" Then
 				;Display
-				MsgBox(0,"Firewall","Firewall bypasssed and cracked..."&@CRLF&"Server cracked..."&@CRLF&"Done.")
+				$Temp_GUI1=GUICreate("Cracking Firewall...",200,300,-1,-1,0x00800000)
+				$tempdata='Checking Firewall...'
+				$Temp_GUI1Edit=GUICtrlCreateEdit("",0,0,200,300,0x0800)
+					GUICtrlSetFont(-1,9,700)
+					GUICtrlSetBkColor(-1,0x000000)
+					GUICtrlSetColor(-1,$colorRED)
+				GUISetState(@SW_SHOW, $Temp_GUI1)
+				GUICtrlSetData($Temp_GUI1Edit,$tempdata)
+				Sleep(1500)
+				$tempdata=$tempdata&@CRLF&"Bypassing Firewall..."
+				GUICtrlSetData($Temp_GUI1Edit,$tempdata)
+				Sleep(1500)
+				$tempdata=$tempdata&@CRLF&"Installed Remote Software..."
+				GUICtrlSetData($Temp_GUI1Edit,$tempdata)
+				Sleep(1500)
+				$tempdata=$tempdata&@CRLF&"Done"
+				GUICtrlSetData($Temp_GUI1Edit,$tempdata)
+				Sleep(1500)
+				GUIDelete($Temp_GUI1)
 				GUICtrlSetData($LableAdmin,"Server and Firewall Server cracked!")
 					GUICtrlSetColor($LableAdmin,$colorGreen)
 				;Change the Server info to Owned
@@ -328,11 +393,13 @@ WEnd
 				_FileWriteToLine($FileIPAddresses,$_adminData[2],$_adminDataString,True)
 			Else
 				GUICtrlSetData($LableAdmin,"There is a firewall in place")
+				Return
 			EndIf
 
 	;Is a Firewall
 		ElseIf $_adminData[1]="Firewall" Then
 			GUICtrlSetData($LableAdmin,"This is a firewall and has no admin login.")
+			Return
 
 	;SSH Security
 		ElseIf $_adminData[1]='SSHActive' Then
@@ -451,8 +518,6 @@ WEnd
 
 	EndFunc
 
-#EndRegion
-
 ;----- DATA FILE READ and PROCCESS
 	Func _DataFile()
 		If $_connectBool=False Then Return
@@ -569,6 +634,18 @@ WEnd
 
 	EndFunc
 
+;----- Fav Function
+	Func _Fav()
+		$_FavID=$IPListID[GUICtrlRead($ViewKnownIPs)]
+		If $IPID[$_FavID][9] = 'NotFavorite' Then
+			_ChangeAddressFile($_FavID,'NotFavorite','Favorite')
+		Else
+			_ChangeAddressFile($_FavID,'Favorite','NotFavorite')
+		EndIf
+		_ViewUpdate()
+
+	EndFunc
+
 ;----- Connect Function
 	Func _Connect()
 		$_connectID=$IPListID[GUICtrlRead($ViewKnownIPs)]
@@ -614,20 +691,57 @@ WEnd
 			$IPID[$ii][6]=$setupIPsplit[7];Root number
 			$IPID[$ii][7]=$setupIPsplit[8];Bandwitdh
 			$IPID[$ii][8]=$setupIPsplit[9];Under Attack
+			$IPID[$ii][9]=$setupIPsplit[10];Favorite
 		Next
 
 	EndFunc
 
 ;----- Address Write to File
-	Func _AddressWrite($_AddressWriteIP,$_AddressWriteID,$_AddressWriteSecurity,$_AddressWriteOwned,$_AddressWriteHidden,$_AddressWriteDescription,$_AddressWriteBandwidth,$_AddressWriteUnderAttack="Safe")
+	Func _AddressWrite($_AddressWriteIP,$_AddressWriteID,$_AddressWriteSecurity,$_AddressWriteOwned,$_AddressWriteHidden,$_AddressWriteDescription,$_AddressWriteBandwidth,$_AddressWriteUnderAttack="Safe",$_AddressWriteFavorite="NotFavorite")
 		;Root number
 		$_addressStringSplitRootNumber=StringSplit($_AddressWriteIP,".")
 		$_AddressWriteRootNumber=$_addressStringSplitRootNumber[1]
 		;Write the file
 		FileWrite($FileIPAddresses,$_AddressWriteIP&","&$_AddressWriteID&","&$_AddressWriteSecurity&","& _
-		$_AddressWriteOwned&","&$_AddressWriteHidden&","&$_AddressWriteDescription&","&$_AddressWriteRootNumber&","&$_AddressWriteBandwidth&","&$_AddressWriteUnderAttack&@CRLF)
+		$_AddressWriteOwned&","&$_AddressWriteHidden&","&$_AddressWriteDescription&","&$_AddressWriteRootNumber&","&$_AddressWriteBandwidth&","&$_AddressWriteUnderAttack&","&$_AddressWriteFavorite&@CRLF)
 
 	EndFunc
+
+;----- Change the Address File
+	Func _ChangeAddressFile($_ChangeAddressFile_ID,$_ChangeAddressFile_From,$_ChangeAddressFile_To)
+		$_ChangeAddressFileReplacmentString=StringReplace(FileReadLine($FileIPAddresses,$_ChangeAddressFile_ID),$_ChangeAddressFile_From,$_ChangeAddressFile_To)
+		_FileWriteToLine($FileIPAddresses,$_ChangeAddressFile_ID,$_ChangeAddressFileReplacmentString,True)
+
+	EndFunc
+
+;----- Filter the ListView Items
+	Func _Filter($_FilterID)
+		$_FilterGroup = GUICtrlRead($ComboListViewGroups)
+		Switch $_FilterGroup
+			Case 'Favorite'
+				If $IPID[$_FilterID][9]='Favorite' Then Return True
+				Return False
+			Case 'Owned'
+				If $IPID[$_FilterID][3]='Owned' Then Return True
+				Return False
+			Case 'IP Lookup Server'
+				If $IPID[$_FilterID][5]='IP Lookup Server' Then Return True
+				Return False
+			Case 'Public IP Lookup'
+				If $IPID[$_FilterID][5]='Public IP Lookup' Then Return True
+				Return False
+			Case 'Root Servers'
+				If $IPID[$_FilterID][5]='Root Server' Then Return True
+				Return False
+			Case 'Firewalls'
+				If $IPID[$_FilterID][5]='Firewall' Then Return True
+				Return False
+			Case 'File Servers'
+				If $IPID[$_FilterID][5]='File Server' Then Return True
+				Return False
+		EndSwitch
+	EndFunc
+	;GUICtrlSetData(-1,"Favorite|Owned|IP Lookup Server|Public IP Lookup|Root Servers|Firewalls|File Servers")
 
 ;----- VIEW UPDATE FUNCTION
 	Func _ViewUpdate()
@@ -635,23 +749,34 @@ WEnd
 		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 
 		_LoadIPTable()
+		GUICtrlSetState($ViewKnownIPs,$GUI_HIDE)
 
 		$gameBandwidthTotal=$gameBandwidthTotalDefault
 
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
 			If $IPID[$i][4]="unHidden" Then
-				If $IPID[$i][7]<1000 Then $tempBandwidth=$IPID[$i][7]&" MB/s"
-				If $IPID[$i][7]>999 Then $tempBandwidth=$IPID[$i][7]/1000&" GB/s"
-				$ViewItem[$i]=GUICtrlCreateListViewItem($IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5]&"|"&$tempBandwidth,$ViewKnownIPs)
-				$IPListID[$ViewItem[$i]]=$IPID[$i][1]
-				If $IPID[$i][3]="Owned" Then
-					GUICtrlSetColor(-1,$colorGreen)
-					$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
-				ElseIf $IPID[$i][8]="underAttack" Then
-					GUICtrlSetColor(-1,$colorOrange)
-					$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
-				EndIf
-				GUICtrlSetBkColor(-1,$colorGray)
+					;setup of info
+					If $IPID[$i][7]<1000 Then $tempBandwidth=$IPID[$i][7]&" MB/s"
+					If $IPID[$i][7]>999 Then $tempBandwidth=$IPID[$i][7]/1000&" GB/s"
+					If $IPID[$i][9]="Favorite" Then $tempFavorite='★'
+					If $IPID[$i][9]="NotFavorite" Then $tempFavorite=''
+					If $IPID[$i][3]="Owned" Then
+						$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
+					ElseIf $IPID[$i][8]="underAttack" Then
+						$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
+					EndIf
+
+					;write the info to list
+					If $ListViewFilter=False Or _Filter($i)=True Then ; Filter
+						$ViewItem[$i]=GUICtrlCreateListViewItem($tempFavorite&"|"&$IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5]&"|"&$tempBandwidth,$ViewKnownIPs)
+							GUICtrlSetBkColor(-1,$colorGray)
+						$IPListID[$ViewItem[$i]]=$IPID[$i][1]
+						If $IPID[$i][3]="Owned" Then
+							GUICtrlSetColor(-1,$colorGreen)
+						ElseIf $IPID[$i][8]="underAttack" Then
+							GUICtrlSetColor(-1,$colorOrange)
+						EndIf
+					EndIf
 			EndIf
 		Next
 
@@ -664,6 +789,7 @@ WEnd
 		EndIf
 
 		$gameBandwidthCalc=True ;Bandwidth has been calculated and does not need to happen again
+		GUICtrlSetState($ViewKnownIPs,$GUI_SHOW)
 
 	EndFunc
 
