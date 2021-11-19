@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=ip.ico
 #AutoIt3Wrapper_Outfile=The IP Game 0.6.0.0.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.6.0.0 View Update"
+Global $Version = "0.6.1.0 View Update"
 
 #cs ===== ===== PLANNING
 
@@ -20,6 +20,13 @@ If you add to this list Change the _LoadIPTable() and _AddressWrite() functions
 
 --- IP Address creation
 _AddressWrite( | IP(*.*.*.*) | ID(program) | Security(0-6) | Owned(NotOwned) | Hidden(NotHidden) | Decription "" | Bandwidth(int) | Default=Safe(UnderAttack) | Default=NotFavorite(Favorite)
+
+--- Game File (written on exit)
+1 = $GameTimeDay,$GameTimeHour,$GameTimeMin
+2 = $GameMoney
+3 = $GameContractNumberActive
+4 = $GameContractTotalCompleate
+
 #ce
 
 #Region ===== ===== Varables and Includes
@@ -42,21 +49,35 @@ $DirBin=@ScriptDir&"\Bin\"
 $DirGame=@ScriptDir&"\Game\"
 $FileIPAddresses=$DirGame&"ip_addresses"
 $FileSSHcertificats=$DirGame&"SSH_certificats"
+$FileGame=$DirGame&"Game"
 
-;--- Vars
+;--- Misc
 Global $IPID[999][99] ;See line 13 / Coding Help for more info
 
 Global $ViewItem[999]
 Global $IPListID[999]
 Global $_connectBool=False
 Global $ListViewFilter=False
-Global $gameBandwidthCalc=False
-Global $gameBandwidthTotalDefault=100
-Global $gameBandwidthTotal=$gameBandwidthTotalDefault
 Global $_connectID
 Global $lableConnectedIP
 Global $ii
-;Tools
+
+;--- Game
+	;Created in game
+Global $GameTickSpeed=5000 ;(In milliseconds Default=5000)
+Global $GameBandwidthCalc=False
+Global $GameBandwidthTotalDefault=100
+Global $GameBandwidthTotal=$gameBandwidthTotalDefault
+Global $_tickClock ; -- See the start of game (end of load)
+	;Also in Game File
+Global $GameTimeDay=1
+Global $GameTimeHour=@HOUR
+Global $GameTimeMin=@MIN
+Global $GameTime="Day "&$GameTimeDay&"  /  "&$GameTimeHour&":"&$GameTimeMin
+Global $GameMoney=0
+Global $GameContractNumberActive=0
+Global $GameContractTotalCompleate=0
+	;Tools
 Global $ToolPasswordBreaker1=True
 Global $ToolPasswordBreaker2=False
 Global $ToolPasswordBreaker3=False
@@ -75,13 +96,13 @@ Global $msgWelcome = 'Welcome to IP Game! This game is currently in beta and onl
 
 #EndRegion
 
-#Region ===== ===== GAME SETUP
+#Region ===== ===== NEW GAME SETUP
 If Not FileExists($DirGame) Then DirCreate($DirGame)
 
 	If $admin=0 Then InetRead($LinkTracking,3) ;Tracking for stats
 
-	If Not FileExists($FileIPAddresses) Then
 ;=== IP generation
+	If Not FileExists($FileIPAddresses) Then
 	$j=1 ;IPID number
 
 ;Root Servers
@@ -206,6 +227,7 @@ GUICtrlCreateTabItem("Server Managment")
 ; Right
 	$top=25
 	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSize_KnownIPs-5),$top,$viewSize_KnownIPs,-1,0x0001)
+	$LableTimeP1=GUICtrlCreateLabel($GameTime,$GUIWidth-85,$top,80)
 	$ViewKnownIPs=GUICtrlCreateListView("Fav|IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSize_KnownIPs-5,$top+20,$viewSize_KnownIPs,$guiHight-80)
 	;to the right of the list view
 	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
@@ -267,14 +289,18 @@ GUICtrlCreateTabItem("Server Managment")
 	#Region ----- Money and Contracts
 GUICtrlCreateTabItem("Money and Contracts")
 
-
-
+	$top=25
+	$LableTimeP2=GUICtrlCreateLabel($GameTime,$GUIWidth-85,$top,80)
 
 	#EndRegion
 
-;----- Load Game
+;----- Load Save File
+	If FileExists(
+
+;----- Start Game
 	_ViewUpdate()
 	GUISetState(@SW_SHOW)
+	$_tickClock=TimerInit()
 
 #EndRegion
 
@@ -283,6 +309,10 @@ GUICtrlCreateTabItem("Money and Contracts")
 While 1
 	$GUI_MSG=GUIGetMsg()
 
+; Game Tick
+	_Tick()
+
+; GUI MSG
 	Switch $GUI_MSG
 		case -3
 			Exit
@@ -317,7 +347,6 @@ While 1
 			_AdminData()
 		Case $buttonDDOS
 			_DDOS()
-
 	EndSwitch
 
 WEnd
@@ -442,6 +471,76 @@ WEnd
 
 	EndFunc
 
+;----- DATA FILE READ and PROCCESS
+	Func _DataFile()
+		If $_connectBool=False Then Return
+		$_publicDataFile=$DirGame&$_connectID&"data"
+		$_publicDataAdminFile=$DirGame&$_connectID&"admin"
+		$_publicDataFileRead=FileReadLine($_publicDataFile,1)
+		$_publicDataFileRead=StringSplit($_publicDataFileRead,",")
+
+	;IP File Found
+		If $_publicDataFileRead[1]="IP" Then
+			$_publicIPCount="New IP Addresses Found:"&@CRLF
+			$_publicIPCount2=0
+			For $i=2 to _FileCountLines($_publicDataFile) Step 1
+				$_publicDataFileRead=FileReadLine($_publicDataFile,$i)
+				If $_publicDataFileRead<>"" Then
+					$_publicSplit=StringSplit(FileReadLine($FileIPAddresses,$_publicDataFileRead),",")
+					If $_publicSplit[5]="Hidden" Then
+						$_publicString=StringReplace(FileReadLine($FileIPAddresses,$_publicDataFileRead),"Hidden","unHidden")
+						_FileWriteToLine($FileIPAddresses,$_publicDataFileRead,$_publicString,True)
+						$_publicIPCount=$_publicIPCount&$_publicSplit[1]&@CRLF
+						$_publicIPCount2+=1
+					EndIf
+				EndIf
+
+			Next
+			If $_publicIPCount2=0 Then
+				GUICtrlSetData($LablePublic,"No new files found.")
+			Else
+				$Temp_GUI1=GUICreate("New IP Adresses",200,300,-1,-1,0x00800000)
+				$Temp_GUI1_LableIPAddresses=GUICtrlCreateLabel($_publicIPCount,3,5,190,225)
+					GUICtrlSetFont(-1,7,700)
+				$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Addresses",3,240,190,25)
+				GUISetState(@SW_SHOW, $Temp_GUI1)
+				While 1
+					$GUI_MSG=GUIGetMsg()
+					Switch $GUI_MSG
+						Case $Temp_GUI1_ButtonAdd
+							ExitLoop
+					EndSwitch
+				WEnd
+				GUIDelete($Temp_GUI1)
+				_ViewUpdate()
+			EndIf
+
+		ElseIf $_publicDataFileRead[1]="SSH" Then
+			If $IPID[$_connectID][3] = 'Owned' Then
+				$Temp_GUI1=GUICreate("SSH certificate found",200,300,-1,-1,0x00800000)
+				GUICtrlCreateLabel('An SSH certificate has been found for:',3,5,190,225)
+					GUICtrlSetFont(-1,7,700)
+				GUICtrlCreateLabel('IP: '&$IPID[$_publicDataFileRead[2]][0],3,20,190,225)
+				$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Certificate",3,240,190,25)
+				GUISetState(@SW_SHOW, $Temp_GUI1)
+				While 1
+					$GUI_MSG=GUIGetMsg()
+					Switch $GUI_MSG
+						Case $Temp_GUI1_ButtonAdd
+							ExitLoop
+					EndSwitch
+				WEnd
+				GUIDelete($Temp_GUI1)
+			Else
+				GUICtrlSetData($LablePublic,"Server is not owned.")
+			EndIf
+
+	;No Public Data File
+		Else
+			GUICtrlSetData($LablePublic,"No Files Found.")
+		EndIf
+	EndFunc
+
 ;----- Password Cracking
 	Func _passwordCracking($_passwordCrackingTraceActive)
 
@@ -516,76 +615,6 @@ WEnd
 		WEnd
 		GUIDelete($_passwordCrackingGUI)
 
-	EndFunc
-
-;----- DATA FILE READ and PROCCESS
-	Func _DataFile()
-		If $_connectBool=False Then Return
-		$_publicDataFile=$DirGame&$_connectID&"data"
-		$_publicDataAdminFile=$DirGame&$_connectID&"admin"
-		$_publicDataFileRead=FileReadLine($_publicDataFile,1)
-		$_publicDataFileRead=StringSplit($_publicDataFileRead,",")
-
-	;IP File Found
-		If $_publicDataFileRead[1]="IP" Then
-			$_publicIPCount="New IP Addresses Found:"&@CRLF
-			$_publicIPCount2=0
-			For $i=2 to _FileCountLines($_publicDataFile) Step 1
-				$_publicDataFileRead=FileReadLine($_publicDataFile,$i)
-				If $_publicDataFileRead<>"" Then
-					$_publicSplit=StringSplit(FileReadLine($FileIPAddresses,$_publicDataFileRead),",")
-					If $_publicSplit[5]="Hidden" Then
-						$_publicString=StringReplace(FileReadLine($FileIPAddresses,$_publicDataFileRead),"Hidden","unHidden")
-						_FileWriteToLine($FileIPAddresses,$_publicDataFileRead,$_publicString,True)
-						$_publicIPCount=$_publicIPCount&$_publicSplit[1]&@CRLF
-						$_publicIPCount2+=1
-					EndIf
-				EndIf
-
-			Next
-			If $_publicIPCount2=0 Then
-				GUICtrlSetData($LablePublic,"No new files found.")
-			Else
-				$Temp_GUI1=GUICreate("New IP Adresses",200,300,-1,-1,0x00800000)
-				$Temp_GUI1_LableIPAddresses=GUICtrlCreateLabel($_publicIPCount,3,5,190,225)
-					GUICtrlSetFont(-1,7,700)
-				$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Addresses",3,240,190,25)
-				GUISetState(@SW_SHOW, $Temp_GUI1)
-				While 1
-					$GUI_MSG=GUIGetMsg()
-					Switch $GUI_MSG
-						Case $Temp_GUI1_ButtonAdd
-							ExitLoop
-					EndSwitch
-				WEnd
-				GUIDelete($Temp_GUI1)
-				_ViewUpdate()
-			EndIf
-
-		ElseIf $_publicDataFileRead[1]="SSH" Then
-			If $IPID[$_connectID][3] = 'Owned' Then
-				$Temp_GUI1=GUICreate("SSH certificate found",200,300,-1,-1,0x00800000)
-				GUICtrlCreateLabel('An SSH certificate has been found for:',3,5,190,225)
-					GUICtrlSetFont(-1,7,700)
-				GUICtrlCreateLabel('IP: '&$IPID[$_publicDataFileRead[2]][0],3,20,190,225)
-				$Temp_GUI1_ButtonAdd=GUICtrlCreateButton("ADD New Certificate",3,240,190,25)
-				GUISetState(@SW_SHOW, $Temp_GUI1)
-				While 1
-					$GUI_MSG=GUIGetMsg()
-					Switch $GUI_MSG
-						Case $Temp_GUI1_ButtonAdd
-							ExitLoop
-					EndSwitch
-				WEnd
-				GUIDelete($Temp_GUI1)
-			Else
-				GUICtrlSetData($LablePublic,"Server is not owned.")
-			EndIf
-
-	;No Public Data File
-		Else
-			GUICtrlSetData($LablePublic,"No Files Found.")
-		EndIf
 	EndFunc
 
 ;----- DDOS
@@ -672,6 +701,28 @@ WEnd
 		GUICtrlSetData($LableDDOS,"")
 			GUICtrlSetColor($LableDDOS,$colorRED)
 		GUICtrlSetData($buttonDDOS,"DDOS")
+
+	EndFunc
+
+;----- Tick Counter
+	Func _Tick()
+		If TimerDiff($_tickClock)>$GameTickSpeed Then
+			$GameTimeMin+=1
+			If $GameTimeMin=60 Then
+				$GameTimeMin=1
+				$GameTimeHour+=1
+				If $GameTimeHour=24 Then
+					$GameTimeHour=0
+					$GameTimeDay+=1
+				EndIf
+			EndIf
+			If $GameTimeMin<10 Then $GameTimeMin="0"&$GameTimeMin
+			$GameTime="Day "&$GameTimeDay&"  /  "&$GameTimeHour&":"&$GameTimeMin
+			GUICtrlSetData($LableTimeP1,$GameTime)
+			GUICtrlSetData($LableTimeP2,$GameTime)
+			$_tickClock=TimerInit()
+		EndIf
+
 
 	EndFunc
 
@@ -792,8 +843,3 @@ WEnd
 		GUICtrlSetState($ViewKnownIPs,$GUI_SHOW)
 
 	EndFunc
-
-
-
-
-
