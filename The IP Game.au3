@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=ip.ico
 #AutoIt3Wrapper_Outfile=The IP Game 0.6.0.0.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.6.1.0 View Update"
+Global $Version = "0.6.2.0 View Update"
 
 #cs ===== ===== PLANNING
 
@@ -24,8 +24,7 @@ _AddressWrite( | IP(*.*.*.*) | ID(program) | Security(0-6) | Owned(NotOwned) | H
 --- Game File (written on exit)
 1 = $GameTimeDay,$GameTimeHour,$GameTimeMin
 2 = $GameMoney
-3 = $GameContractNumberActive
-4 = $GameContractTotalCompleate
+3 = $GameContractNumberActive,$GameContractTotalCompleate
 
 #ce
 
@@ -295,7 +294,25 @@ GUICtrlCreateTabItem("Money and Contracts")
 	#EndRegion
 
 ;----- Load Save File
-	If FileExists(
+	If FileExists($FileGame) Then
+		;Line 1 - Time
+		$SaveRead=StringSplit(FileReadLine($FileGame,1),',')
+		$GameTimeDay=$SaveRead[1]
+		$GameTimeHour=$SaveRead[2]
+		$GameTimeMin=$SaveRead[3]
+		;Line 2 - Money
+		$SaveRead=StringSplit(FileReadLine($FileGame,2),',')
+		$GameMoney=$SaveRead[1]
+		;Line 3 - Contracts
+		$SaveRead=StringSplit(FileReadLine($FileGame,3),',')
+		$GameContractNumberActive=$SaveRead[1]
+		$GameContractTotalCompleate=$SaveRead[2]
+	EndIf
+	$GameTime="Day "&$GameTimeDay&"  /  "&$GameTimeHour&":"&$GameTimeMin
+	GUICtrlSetData($LableTimeP1,$GameTime)
+	GUICtrlSetData($LableTimeP2,$GameTime)
+
+
 
 ;----- Start Game
 	_ViewUpdate()
@@ -315,6 +332,7 @@ While 1
 ; GUI MSG
 	Switch $GUI_MSG
 		case -3
+			_Save()
 			Exit
 		Case $ButtonConnect
 			_Connect()
@@ -337,7 +355,6 @@ While 1
 			_ViewUpdate()
 		Case $ButtonNewGame
 			DirRemove(@ScriptDir&"\Game\",1)
-			ShellExecute(@ScriptFullPath)
 			Exit
 		Case $ButtonHelp
 			MsgBox(0,"Welcome!",$msgWelcome)
@@ -701,6 +718,15 @@ WEnd
 		GUICtrlSetData($LableDDOS,"")
 			GUICtrlSetColor($LableDDOS,$colorRED)
 		GUICtrlSetData($buttonDDOS,"DDOS")
+
+	EndFunc
+
+;----- Save Function
+	Func _Save()
+		If FileExists($FileGame) Then FileDelete($FileGame)
+		FileWrite($FileGame,$GameTimeDay&','&$GameTimeHour&','&$GameTimeMin&@CRLF& _ ;Time data
+		$GameMoney&@CRLF& _ ;Money data
+		$GameContractNumberActive&','&$GameContractTotalCompleate) ;Contract data
 
 	EndFunc
 
