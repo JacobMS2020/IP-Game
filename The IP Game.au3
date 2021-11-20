@@ -1,8 +1,8 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=ip.ico
-#AutoIt3Wrapper_Outfile=The IP Game 0.6.0.0.exe
+#AutoIt3Wrapper_Outfile=The IP Game 0.6.4.0.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.6.2.0 View Update"
+Global $Version = "0.6.4.0 Money Update - Work in progress"
 
 #cs ===== ===== PLANNING
 
@@ -63,17 +63,20 @@ Global $ii
 
 ;--- Game
 	;Created in game
-Global $GameTickSpeed=5000 ;(In milliseconds Default=5000)
+Global $GameTickSpeed=1000 ;(In milliseconds Default=1000)
 Global $GameBandwidthCalc=False
 Global $GameBandwidthTotalDefault=100
 Global $GameBandwidthTotal=$gameBandwidthTotalDefault
 Global $_tickClock ; -- See the start of game (end of load)
 	;Also in Game File
 Global $GameTimeDay=1
-Global $GameTimeHour=@HOUR
-Global $GameTimeMin=@MIN
+Global $GameTimeHour=0
+Global $GameTimeMin=1
 Global $GameTime="Day "&$GameTimeDay&"  /  "&$GameTimeHour&":"&$GameTimeMin
 Global $GameMoney=0
+Global $GameCash=0
+Global $GameIncomeTotal=0
+Global $GameExpensesTotal=0
 Global $GameContractNumberActive=0
 Global $GameContractTotalCompleate=0
 	;Tools
@@ -211,7 +214,7 @@ EndIf
 ;----- GUI setup
 	$guiHight = 450
 	$guiWidth = 800
-	$viewSize_KnownIPs=480
+	$GUIviewSize_KnownIPs=480
 	$guiButtonHight=25
 	$guiButtonWidth=125
 
@@ -225,17 +228,17 @@ GUICtrlCreateTabItem("Server Managment")
 
 ; Right
 	$top=25
-	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($viewSize_KnownIPs-5),$top,$viewSize_KnownIPs,-1,0x0001)
+	GUICtrlCreateLabel("Known Server Addresses:",$guiWidth-($GUIviewSize_KnownIPs-5),$top,$GUIviewSize_KnownIPs,-1,0x0001)
 	$LableTimeP1=GUICtrlCreateLabel($GameTime,$GUIWidth-85,$top,80)
-	$ViewKnownIPs=GUICtrlCreateListView("Fav|IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$viewSize_KnownIPs-5,$top+20,$viewSize_KnownIPs,$guiHight-80)
+	$ViewKnownIPs=GUICtrlCreateListView("Fav|IP                              |Security|ID|Decription|Bandwidth",$guiWidth-$GUIviewSize_KnownIPs-5,$top+20,$GUIviewSize_KnownIPs,$guiHight-80)
 	;to the right of the list view
 	$ButtonConnect=GUICtrlCreateButton("Connect",$guiWidth-80,$guiHight-30,75,25)
 	$ButtonDisconnect=GUICtrlCreateButton("Disconnect",$guiWidth-155,$guiHight-30,75,25)
 	$ButtonFavorite=GUICtrlCreateButton('★',$guiWidth-160-25,$guiHight-30,30)
 		GUICtrlSetFont(-1,16)
 	;to the left of the list view
-	$ButtonFilter=GUICtrlCreateButton("Filter (OFF)",$guiWidth-$viewSize_KnownIPs-5,$guiHight-30,75)
-	$ComboListViewGroups=GUICtrlCreateCombo("None",$guiWidth-$viewSize_KnownIPs+75,$guiHight-28,150,-1,$CBS_DROPDOWNLIST)
+	$ButtonFilter=GUICtrlCreateButton("Filter (OFF)",$guiWidth-$GUIviewSize_KnownIPs-5,$guiHight-30,75)
+	$ComboListViewGroups=GUICtrlCreateCombo("None",$guiWidth-$GUIviewSize_KnownIPs+75,$guiHight-28,150,-1,$CBS_DROPDOWNLIST)
 		GUICtrlSetData(-1,"Favorite|Owned|IP Lookup Server|Public IP Lookup|Root Servers|Firewalls|File Servers")
 
 
@@ -288,11 +291,91 @@ GUICtrlCreateTabItem("Server Managment")
 	#Region ----- Money and Contracts
 GUICtrlCreateTabItem("Money and Contracts")
 
+	$GUI_moneyFinanceWidth=200
+	$GUI_moneyViewWidth=300
+
+; Right
 	$top=25
 	$LableTimeP2=GUICtrlCreateLabel($GameTime,$GUIWidth-85,$top,80)
+	GUICtrlCreateLabel("Contracts",$GUIWidth-$GUI_moneyViewWidth-5,$top,$GUI_moneyViewWidth,15)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	GUICtrlCreateLabel("Contracts",$GUIWidth-$GUI_moneyViewWidth-5,$top,$GUI_moneyViewWidth,20,0x01)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	$ViewContracts=GUICtrlCreateListView("Income|Type                             |ID",$GUIWidth-$GUI_moneyViewWidth-5,$top,$GUI_moneyViewWidth,$GUIHight/2)
+	$top+=$GUIHight/2+5
+	GUICtrlCreateLabel("New Contracts",$GUIWidth-$GUI_moneyViewWidth-5,$top,$GUI_moneyViewWidth,20,0x01)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=25
+	$tempWIDTH=100
+	$ButtonContract1=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5,$top,$tempWIDTH)
+	$ButtonContract2=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+$tempWIDTH,$top,$tempWIDTH)
+		GUICtrlSetState(-1,$GUI_DISABLE)
+	$ButtonContract3=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+($tempWIDTH*2),$top,$tempWIDTH)
+		GUICtrlSetState(-1,$GUI_DISABLE)
+
+; Middle
+	$tempWIDTH=$GUIWidth-$GUI_moneyViewWidth-$GUI_moneyFinanceWidth-20
+	$top=25
+	GUICtrlCreateLabel("Services",$GUI_moneyFinanceWidth+10,$top,$tempWIDTH,15)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	GUICtrlCreateLabel("Services",$GUI_moneyFinanceWidth+10,$top,$tempWIDTH,20,0x01)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	$ViewServices=GUICtrlCreateListView("Expence|Type                             |ID",$GUI_moneyFinanceWidth+10,$top,$tempWIDTH,$GUIHight/2)
+	$top+=$GUIHight/2+5
+
+; Left
+	$tempTOPmalt=43
+	$top=25
+	GUICtrlCreateLabel("Financial Report",5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	GUICtrlCreateLabel("Money",5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	$LableMoney=GUICtrlCreateLabel("Bank : $"&$GameMoney,5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBKColor(-1,$colorGreenLight)
+	$top+=20
+	$LableCash=GUICtrlCreateLabel("Cash : $"&$GameCash,5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBKColor(-1,$colorGreenLight)
+	$top+=$tempTOPmalt
+	GUICtrlCreateLabel("Income (Every 5 seconds)",5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	$LableIncome=GUICtrlCreateLabel("Income: $"&$GameIncomeTotal,5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBKColor(-1,$colorGreenLight)
+	$top+=$tempTOPmalt
+	GUICtrlCreateLabel("Expenses (Every 5 seconds)",5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	$LableExpenses=GUICtrlCreateLabel("Expenses: $"&$GameExpensesTotal,5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBKColor(-1,$colorREDLight)
+	$top+=$tempTOPmalt
+	GUICtrlCreateLabel("Net Income",5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	$LableExpenses=GUICtrlCreateLabel("Net Income $"&$GameIncomeTotal-$GameExpensesTotal,5,$top,$GUI_moneyFinanceWidth,15)
+		GUICtrlSetBKColor(-1,0xffffff)
 
 	#EndRegion
 
+	#Region ----- Police & Political
+GUICtrlCreateTabItem("Police & Security")
+	$top=25
+	GUICtrlCreateLabel(":)",5,$top)
+
+
+	#EndRegion
 ;----- Load Save File
 	If FileExists($FileGame) Then
 		;Line 1 - Time
