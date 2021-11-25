@@ -1,6 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=ip.ico
-#AutoIt3Wrapper_Outfile=The IP Game 0.6.4.0.exe
+#AutoIt3Wrapper_Outfile=The IP Game 0.7.0.0.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 Global $Version = "0.7.0.0 Money Update"
 
