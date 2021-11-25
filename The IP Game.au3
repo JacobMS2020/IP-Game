@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=ip.ico
 #AutoIt3Wrapper_Outfile=The IP Game 0.6.4.0.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.6.5.0 Money Update - Work in progress"
+Global $Version = "0.7.0.0 Money Update"
 
 #cs ===== ===== PLANNING
 
@@ -13,8 +13,8 @@ http://www.alanwood.net/demos/wingdings.html
 #cs ----- Coding HELP - IPID and more
 
 --- IPID
-| 0 |  1 |       2       |   3   |    4  |      5     |       6	    |	   7	|     8       |     9    |    10   |
-|IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack  | Favorite | Region  |
+| 0 |  1 |       2       |   3   |    4  |      5     |       6	    |	   7	|     8       |     9    |    10   |       11     |
+|IP | ID | Security(0-6) | Owned | Found | Decription | Root number | Bandwidth | UnderAtack  | Favorite | Region  | Stolen/Built |
 If you add to this list Change the _LoadIPTable() and _AddressWrite() functions
 
 --- ContractID
@@ -26,7 +26,7 @@ _AddressWrite( | IP(*.*.*.*) | ID(program) | Security(0-6) | Owned(NotOwned) | H
 --- Game File (written on exit)
 1 = $gameTimeDay,$gameTimeHour,$gameTimeMin
 2 = $gameMoney
-3 = $gameContractActive,$gameContractTotalCompleate
+3 = $gameContractsActive,$gameContractTotalCompleate
 
 #ce
 
@@ -67,14 +67,11 @@ Global $_connectID
 Global $lableConnectedIP
 Global $ii
 	 ;Check proformance
-Global $TickCheck=True ;True = ON
+Global $TickCheck=False ;True = ON
 Global $TickAverage=0
 Global $TickAverageFullLoop=0
 Global $TickCount=0
 ;--- Game
-Global $gameBandwidthTotalDefault=100
-Global $gameBandwidthTotal=$gameBandwidthTotalDefault
-Global $gameBandwidthContracts=0
 Global $_tickClock ; -- See the start of game (end of load)
 	;Time
 Global $gameTickSpeed=1000 ;(In milliseconds Default=1000)
@@ -85,12 +82,12 @@ Global $gameTimeHour=0
 Global $gameTimeMin=1
 Global $gameTime="Day "&$gameTimeDay&"  /  "&$gameTimeHour&":"&$gameTimeMin
 	;Money/Contracts
-Global $gameContractFindTime=1000;90000 ;(millisenconds untill you can find a new contract to add) ========= CHANGE
+Global $gameContractFindTime=3000;90000 ;(millisenconds untill you can find a new contract to add) ========= CHANGE
 Global $gameMoney=0
 Global $gameCash=0
 Global $gameIncomeTotal=0
 Global $gameExpensesTotal=0
-Global $gameContractActive=0
+Global $gameContractsActive=0
 Global $gameContractTotalCompleate=0
 Global $gameContractTotalToday=0
 Global $gameContractScore=0
@@ -104,15 +101,26 @@ Global $ToolPasswordBreaker3=False
 Global $gameContractFinder1=True
 Global $gameContractFinder2=False
 Global $gameContractFinder3=False
-	;Regions
-Global $RegionNames[8]
+	;Servers & Regions
+Global $RegionNames[5]
 $RegionNames[1] = "Europe"
-$RegionNames[2] = "South America"
+$RegionNames[2] = "America"
 $RegionNames[3] = "Oceania"
 $RegionNames[4] = "Asia"
-$RegionNames[5] = "North America"
-$RegionNames[6] = "Antarctica"
-$RegionNames[7] = "Africa"
+Global $gameServerCount=1
+Global $gameServersEurope=0
+Global $gameServersAmerica=0
+Global $gameServersOceania=0
+Global $gameServersAsia=0
+	;Server Bandwidth
+Global $gameBandwidthEurope=0
+Global $gameBandwidthAmerica=0
+Global $gameBandwidthOceania=0
+Global $gameBandwidthAsia=0
+	;Bandwidth
+Global $gameBandwidthTotalDefault=100
+Global $gameBandwidthTotal=$gameBandwidthTotalDefault
+Global $gameBandwidthContracts=0
 
 ;--- Colors
 $colorREDLight=0xff9090
@@ -121,6 +129,7 @@ $colorGreenLight=0xACFFA4
 $colorGreen=0x24BA06
 $colorGray=0xCCCCCC
 $colorOrange=0xFF9700
+$colorGrayLight=0xf2f2f2
 
 ;--- Messages
 
@@ -409,6 +418,71 @@ GUICtrlCreateTabItem("Money and Contracts") ;Dont change this lable name
 GUICtrlCreateTabItem("Server Managment")
 	$top=25
 	$LableTimeP3=GUICtrlCreateLabel($gameTime,$GUIWidth-85,$top,80)
+	$GUI_ServerManagmentWIDTH=$guiWidth/3
+
+; Left
+	$tempTOPmalt=30
+	$top=25
+	GUICtrlCreateLabel(" Server Details",5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	GUICtrlCreateLabel(" Server Regions",5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBkColor(-1,$colorGray)
+		GUICtrlSetFont(-1,10,700)
+	$top+=20
+	GUICtrlCreateLabel("",5,$top,$GUI_ServerManagmentWIDTH,15,0x07)
+	GUICtrlCreateLabel(" Europe",5,$top,$GUI_ServerManagmentWIDTH,15)
+		;GUICtrlSetBKColor(-1,$colorGrayLight)
+		GUICtrlSetFont(-1,8.5,600)
+	$top+=20
+	$LableServerCountEurope=GUICtrlCreateLabel("Server Count: "&$gameServersEurope,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+	$top+=20
+	$LableBandwidthEurope=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthEurope,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+	$top+=30
+
+	GUICtrlCreateLabel("",5,$top,$GUI_ServerManagmentWIDTH,15,0x07)
+	GUICtrlCreateLabel(" America",5,$top,$GUI_ServerManagmentWIDTH,15)
+		;GUICtrlSetBKColor(-1,$colorGrayLight)
+		GUICtrlSetFont(-1,8.5,600)
+	$top+=20
+	$LableServerCountAmerica=GUICtrlCreateLabel("Server Count: "&$gameServersAmerica,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+	$top+=20
+	$LableBandwidthAmerica=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthAmerica,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+	$top+=30
+
+	GUICtrlCreateLabel("",5,$top,$GUI_ServerManagmentWIDTH,15,0x07)
+	GUICtrlCreateLabel(" Oceania",5,$top,$GUI_ServerManagmentWIDTH,15)
+		;GUICtrlSetBKColor(-1,$colorGrayLight)
+		GUICtrlSetFont(-1,8.5,600)
+	$top+=20
+	$LableServerCountOceania=GUICtrlCreateLabel("Server Count: "&$gameServersOceania,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+	$top+=20
+	$LableBandwidthOceania=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthOceania,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+
+	$top+=30
+	GUICtrlCreateLabel("",5,$top,$GUI_ServerManagmentWIDTH,15,0x07)
+	GUICtrlCreateLabel(" Asia",5,$top,$GUI_ServerManagmentWIDTH,15)
+		;GUICtrlSetBKColor(-1,$colorGrayLight)
+		GUICtrlSetFont(-1,8.5,600)
+	$top+=20
+	$LableServerCountAsia=GUICtrlCreateLabel("Server Count: "&$gameServersAsia,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+	$top+=20
+	$LableBandwidthAsia=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthAsia,5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,$colorGrayLight)
+
+
+	$top+=$tempTOPmalt
+	GUICtrlCreateLabel("Totals",5,$top,$GUI_ServerManagmentWIDTH,15)
+		GUICtrlSetBKColor(-1,0xffffff)
+
+	$ButtonTest3=GUICtrlCreateButton("Test3",5,$GUIHight-30,75)
 
 
 	#EndRegion
@@ -435,8 +509,8 @@ GUICtrlCreateTabItem("Politics and Security")
 		$gameMoney=$SaveRead[1]
 		;Line 3 - Contracts
 		$SaveRead=StringSplit(FileReadLine($FileGame,3),',')
-		$gameContractActive=$SaveRead[1]
-		$gameContractTotalCompleate=$SaveRead[2]
+		If $SaveRead[1]>0 Then MsgBox(0,"Warning","While your servers where down you lost "&$SaveRead[1]&" contracts.") ;Last $gameContractsActive
+		$gameContractScore=$SaveRead[2]
 	EndIf
 
 ;----- Update GUI Lables
@@ -476,9 +550,12 @@ While 1
 			If $TickCheck=True Then _FileWriteLog($FileLog,"Tick time Average Full Loop ("&$Version&") = "&$TickAverageFullLoop/$TickCount)
 			_Save()
 			Exit
+		Case $ButtonTest
+			;= Test button
 		Case $ButtonTest2
-			$temp=InputBox("","")
-			_GUICtrlListView_DeleteItem($ViewContracts,$temp)
+			;= Test button
+		Case $ButtonTest3
+			;= Test button
 		Case $ButtonConnect
 			_Connect()
 		Case $ButtonDisconnect
@@ -496,8 +573,6 @@ While 1
 			_ViewUpdate()
 		Case $ComboListViewGroups
 			If $ListViewFilter=True Then _ViewUpdate()
-		Case $ButtonTest
-			$TickCheck=True
 		Case $ButtonNewGame
 			DirRemove(@ScriptDir&"\Game\",1)
 			Exit
@@ -572,7 +647,7 @@ WEnd
 		EndIf
 
 	;Money/Contracts calculations
-		If $gameContractActive>0 And TimerDiff($timerContractTick)>10000 Then ;Add money and delete old contracts
+		If $gameContractsActive>0 And TimerDiff($timerContractTick)>10000 Then ;Add money and delete old contracts
 			$TEMPUpdate=False
 			For $i=1 To $gameContractTotalToday Step 1
 				If $gameContractID[$i][1]=1 Then ;if active
@@ -581,7 +656,7 @@ WEnd
 						$gameContractID[$i][1]=0
 						$gameIncomeTotal-=$gameContractID[$i][4]
 						$gameBandwidthContracts-=$gameContractID[$i][5]
-						$gameContractActive-=1
+						$gameContractsActive-=1
 						$TEMPUpdate=True
 					EndIf
 				EndIf
@@ -611,13 +686,43 @@ WEnd
 		;| 0  |       1     |   2  |             3          |    4  |      5    |       6      |
 		;| ID | Active (0-1 | Time | Start Time (timerInit) | Price | Bandwidth | View Item ID |
 
-		$_contractsRandom=1 ;$_contractsRandom=Random(1,3,1)
-		If $_contractsRandom=1 Then ;Website Contract
-			$_contractsPrice=Random(35,150,1)
-			$_contractsBandwidth=Random(10,300,1)
-			$_contractsTime=Random(60,300,1) ;Seconds (1-5min)
-			$_contractsContractDescription="Host a website that uses "&$_contractsBandwidth&" Mbps at $"&$_contractsPrice&" for every 10 seconds of up time. The duration of the contract is "&$_contractsTime&" seconds ("&Round($_contractsTime/60,0)&" minuets)."
+	;Select contract
+		If 	$gameServerCount<3 Then
+			$_contractsRandom=1
+		ElseIf $gameServerCount>2 and $gameServerCount<7 Then
+			$_contractsRandom=Random(1,2,1)
+		Else
+			$_contractsRandom=Random(1,3,1)
 		EndIf
+
+	;Website Contract
+		If $_contractsRandom=1 Then
+			$_contractsPrice=Random(25,200,1)
+			$_contractsBandwidth=Random(5,20,1)*10
+			$_contractsTime=Random(60,300,1) ;Seconds (1-5min)
+			$_contractServiceName="Website"
+			$_contractServiceRegion="any"
+	;VPN Contract
+		ElseIf $_contractsRandom=2 Then
+			$_contractsPrice=Random(400,1500,1)
+			$_contractsBandwidth=Random(50,100,1)*10
+			$_contractsTime=Random(120,600,1) ;Seconds (2-10min)
+			$_contractServiceName="VPN"
+			$_contractServiceRegion="any"
+	;Government Contract
+		ElseIf $_contractsRandom=3 Then
+			$_contractsPrice=Random(1000,3000,1)
+			$_contractsBandwidth=Random(100,300,1)*10
+			$_contractsTime=Random(300,600,1) ;Seconds (5-10min)
+			$_contractServiceName="Government Service"
+			$_contractServiceRegion="random (to add later)"
+		Else
+			MsgBox(16,"CODE ERROR","Error in the making on contracts!")
+			Return
+		EndIf
+
+	;Write the new contract
+		$_contractsContractDescription="Host a "&$_contractServiceName&" that uses "&$_contractsBandwidth&" Mbps at $"&$_contractsPrice&" for every 10 seconds of up time. The duration of the contract is "&$_contractsTime&" seconds ("&Round($_contractsTime/60,0)&" minuets)."&@CRLF&"Service Region: "&$_contractServiceRegion
 		$_contractsYN=MsgBox(4,"New Contract","New Contract:"&@CRLF&$_contractsContractDescription&@CRLF&"Do you Accept?")
 		If $_contractsYN=6 Then
 			If $gameBandwidthTotal-$_contractsBandwidth < 0 Then
@@ -626,7 +731,7 @@ WEnd
 			EndIf
 			$gameBandwidthContracts+=$_contractsBandwidth ;Add the bandwidth to be deducted
 			$gameContractTotalToday+=1
-			$gameContractActive+=1
+			$gameContractsActive+=1
 			$gameContractScore+=1
 			$gameContractID[$gameContractTotalToday][0]=$gameContractTotalToday ;ID number
 			$gameContractID[$gameContractTotalToday][1]=1 ;Active (1 = yes)
@@ -635,7 +740,6 @@ WEnd
 			$gameContractID[$gameContractTotalToday][4]=$_contractsPrice ;Price (to be added every x seconds)
 			$gameContractID[$gameContractTotalToday][5]=$_contractsBandwidth ;Bandwidth (to be deducted and added when contract started of started)
 			$gameContractID[$gameContractTotalToday][6]=$ViewContractsItemCount
-			$gameContractActive+=1
 
 			$gameIncomeTotal+=$_contractsPrice
 			_ViewUpdate()
@@ -989,7 +1093,7 @@ WEnd
 		If FileExists($FileGame) Then FileDelete($FileGame)
 		FileWrite($FileGame,$gameTimeDay&','&$gameTimeHour&','&$gameTimeMin&@CRLF& _ ;Time data
 		$gameMoney&@CRLF& _ ;Money data
-		$gameContractActive&','&$gameContractScore) ;Contract data
+		$gameContractsActive&','&$gameContractScore) ;Contract data
 
 	EndFunc
 ;---- Load IP Table
@@ -1009,20 +1113,22 @@ WEnd
 			$IPID[$ii][8]=$setupIPsplit[9];Under Attack
 			$IPID[$ii][9]=$setupIPsplit[10];Favorite
 			$IPID[$ii][10]=$setupIPsplit[11];Region
+			$IPID[$ii][11]=$setupIPsplit[12];Stolen/Built
 		Next
 	EndFunc
 ;----- Address Write to File
-	Func _AddressWrite($_AddressWriteIP,$_AddressWriteID,$_AddressWriteSecurity,$_AddressWriteOwned,$_AddressWriteHidden,$_AddressWriteDescription,$_AddressWriteBandwidth,$_AddressWriteUnderAttack="Safe",$_AddressWriteFavorite="NotFavorite",$_AddressWriteRegion="random")
+	Func _AddressWrite($_AddressWriteIP,$_AddressWriteID,$_AddressWriteSecurity,$_AddressWriteOwned,$_AddressWriteHidden,$_AddressWriteDescription,$_AddressWriteBandwidth,$_AddressWriteUnderAttack="Safe",$_AddressWriteFavorite="NotFavorite",$_AddressWriteRegion="random",$_AddressWriteStolenBuilt="stolen")
 		;Root number setup
 		$_addressStringSplitRootNumber=StringSplit($_AddressWriteIP,".")
 		$_AddressWriteRootNumber=$_addressStringSplitRootNumber[1]
 		;Region setup (random)
 		If $_AddressWriteRegion='random' Then
-			$_AddressWriteRegion=$RegionNames[Random(1,7,1)]
+			$_AddressWriteRegion=$RegionNames[Random(1,4,1)]
 		EndIf
 		;Write the file
 		FileWrite($FileIPAddresses,$_AddressWriteIP&","&$_AddressWriteID&","&$_AddressWriteSecurity&","& _
-		$_AddressWriteOwned&","&$_AddressWriteHidden&","&$_AddressWriteDescription&","&$_AddressWriteRootNumber&","&$_AddressWriteBandwidth&","&$_AddressWriteUnderAttack&","&$_AddressWriteFavorite&","&$_AddressWriteRegion&@CRLF)
+		$_AddressWriteOwned&","&$_AddressWriteHidden&","&$_AddressWriteDescription&","&$_AddressWriteRootNumber&","& _
+		$_AddressWriteBandwidth&","&$_AddressWriteUnderAttack&","&$_AddressWriteFavorite&","&$_AddressWriteRegion&","&$_AddressWriteStolenBuilt&@CRLF)
 
 	EndFunc
 ;----- Change the Address File
@@ -1067,12 +1173,12 @@ WEnd
 ;----- VIEW UPDATE FUNCTION
 	Func _ViewUpdate()
 
-		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 
+		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 		_LoadIPTable()
 		GUICtrlSetState($ViewKnownIPs,$GUI_HIDE)
-
 		$gameBandwidthTotal=$gameBandwidthTotalDefault-$gameBandwidthContracts
+		$gameServerCount=1
 	;Known Servers List View Update
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
 			If $IPID[$i][4]="unHidden" Then
@@ -1082,6 +1188,7 @@ WEnd
 					If $IPID[$i][9]="Favorite" Then $tempFavorite='★'
 					If $IPID[$i][9]="NotFavorite" Then $tempFavorite=''
 					If $IPID[$i][3]="Owned" Then
+						$gameServerCount+=1
 						$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
 					ElseIf $IPID[$i][8]="underAttack" Then
 						$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
@@ -1109,7 +1216,7 @@ WEnd
 		GUICtrlSetState($ViewKnownIPs,$GUI_SHOW)
 
 		;Contracts List View Update
-		If $gameContractActive>0 Then ;Add money and delete old contracts
+		If $gameContractsActive>0 Then ;Add money and delete old contracts
 			_GUICtrlListView_DeleteAllItems($ViewContracts)
 			For $i=0 To $gameContractTotalToday Step 1
 				If $gameContractID[$i][1]=1 Then ;if active
@@ -1120,8 +1227,6 @@ WEnd
 
 		GUICtrlSetData($LableBandwaidthContracts,"Bandwidth used by contrcts: "&$gameBandwidthContracts&" Mbps ("&$gameBandwidthTotal&")")
 		_ViewUpdateMoney()
-
-
 	EndFunc
 
 
