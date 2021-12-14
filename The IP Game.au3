@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=ip.ico
 #AutoIt3Wrapper_Outfile=The IP Game 0.7.0.1.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.7.0.1 Money Update"
+Global $Version = "0.8.0.0 Server Region Update - Beta"
 
 #cs ===== ===== PLANNING
 
@@ -74,8 +74,8 @@ Global $TickCount=0
 Global $_tickClock ; -- See the start of game (end of load)
 	;Time
 Global $gameTickSpeed=1000 ;(In milliseconds Default=1000)
-Global $timerContractButton[4]
-Global $timerContractButton_LestCheck[4]
+Global $timerContractButton_A[4]
+Global $timerContractButton_LestCheck_A[4]
 Global $gameTimeDay=1
 Global $gameTimeHour=0
 Global $gameTimeMin=1
@@ -91,9 +91,13 @@ Global $gameContractTotalCompleate=0
 Global $gameContractTotalToday=0
 Global $gameContractScore=0
 	;GUI
-Global $ButtonContract[4]
-Global $ButtonConnectAT0[4]
+Global $ButtonContract_A[4]
+Global $ButtonConnectT0_A[4]
 Global $ViewContractsItemCount=0
+Global $LableServerCountRegion_A[5]
+$LableServerCountRegion_A[0]=4
+Global $LableBandwidthRegion_A[5]
+$LableBandwidthRegion_A[0]=4
 ;Global $LableServersStolen
 	;Tools
 Global $ToolPasswordBreaker1=True
@@ -103,25 +107,31 @@ Global $gameContractFinder1=True
 Global $gameContractFinder2=False
 Global $gameContractFinder3=False
 	;Servers & Regions
-Global $RegionNames[5]
-$RegionNames[1] = "Europe"
-$RegionNames[2] = "America"
-$RegionNames[3] = "Oceania"
-$RegionNames[4] = "Asia"
+Global $RegionNames_A[5]
+$RegionNames_A[1] = "Europe"
+$RegionNames_A[2] = "America"
+$RegionNames_A[3] = "Oceania"
+$RegionNames_A[4] = "Asia"
 Global $gameServerCount;=1 _ViewUpdate
 Global $gameServerStolenCount;=0 _ViewUpdate
-Global $gameServersEurope=0
-Global $gameServersAmerica=0
-Global $gameServersOceania=0
-Global $gameServersAsia=0
-	;Server Bandwidth
-Global $gameBandwidthEurope=0
-Global $gameBandwidthAmerica=0
-Global $gameBandwidthOceania=0
-Global $gameBandwidthAsia=0
+Global $gameServersRegion_A[5]
+$gameServersRegion_A[0]=4
+For $i=1 To $gameServersRegion_A[0]
+	$gameServersRegion_A[$i]=0
+Next
 	;Bandwidth
-Global $gameBandwidthTotalDefault=100
-Global $gameBandwidthTotal=$gameBandwidthTotalDefault
+Global $gameBandwidthRegion_A[5]
+$gameBandwidthRegion_A[0]=4
+For $i=1 To $gameBandwidthRegion_A[0]
+	$gameBandwidthRegion_A[$i]=0
+Next
+Global $gameBandwidthContractsRegion_A[5]
+$gameBandwidthContractsRegion_A[0]=4
+For $i=1 To $gameBandwidthContractsRegion_A[0]
+	$gameBandwidthContractsRegion_A[$i]=0
+Next
+Global $gameBandwidthTotal=0
+Global $gameBandwidthContractsTotal=0
 Global $gameBandwidthContracts=0
 
 ;--- Colors
@@ -353,10 +363,10 @@ GUICtrlCreateTabItem("Money and Contracts") ;Dont change this lable name
 		GUICtrlSetFont(-1,10,700)
 	$top+=25
 	$tempWIDTH=100
-	$ButtonContract[1]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5,$top,$tempWIDTH)
-	$ButtonContract[2]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+$tempWIDTH,$top,$tempWIDTH)
+	$ButtonContract_A[1]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5,$top,$tempWIDTH)
+	$ButtonContract_A[2]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+$tempWIDTH,$top,$tempWIDTH)
 		GUICtrlSetState(-1,$GUI_DISABLE)
-	$ButtonContract[3]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+($tempWIDTH*2),$top,$tempWIDTH)
+	$ButtonContract_A[3]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+($tempWIDTH*2),$top,$tempWIDTH)
 		GUICtrlSetState(-1,$GUI_DISABLE)
 	$top+=30
 	$LableBandwaidthContracts=GUICtrlCreateLabel("Bandwidth used by contrcts: "&$gameBandwidthContracts&" Mbps",$GUIWidth-$GUI_moneyViewWidth-4,$top,$GUI_moneyViewWidth)
@@ -437,10 +447,10 @@ GUICtrlCreateTabItem("Server Managment")
 		;GUICtrlSetBKColor(-1,$colorGrayLight)
 		GUICtrlSetFont(-1,8.5,600)
 	$top+=20
-	$LableServerCountEurope=GUICtrlCreateLabel("Server Count: "&$gameServersEurope,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableServerCountRegion_A[1]=GUICtrlCreateLabel("Server Count: "&$gameServersRegion_A[1],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 	$top+=20
-	$LableBandwidthEurope=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthEurope,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableBandwidthRegion_A[1]=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthRegion_A[1],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 	$top+=30
 
@@ -449,10 +459,10 @@ GUICtrlCreateTabItem("Server Managment")
 		;GUICtrlSetBKColor(-1,$colorGrayLight)
 		GUICtrlSetFont(-1,8.5,600)
 	$top+=20
-	$LableServerCountAmerica=GUICtrlCreateLabel("Server Count: "&$gameServersAmerica,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableServerCountRegion_A[2]=GUICtrlCreateLabel("Server Count: "&$gameServersRegion_A[2],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 	$top+=20
-	$LableBandwidthAmerica=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthAmerica,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableBandwidthRegion_A[2]=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthRegion_A[2],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 	$top+=30
 
@@ -461,10 +471,10 @@ GUICtrlCreateTabItem("Server Managment")
 		;GUICtrlSetBKColor(-1,$colorGrayLight)
 		GUICtrlSetFont(-1,8.5,600)
 	$top+=20
-	$LableServerCountOceania=GUICtrlCreateLabel("Server Count: "&$gameServersOceania,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableServerCountRegion_A[3]=GUICtrlCreateLabel("Server Count: "&$gameServersRegion_A[3],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 	$top+=20
-	$LableBandwidthOceania=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthOceania,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableBandwidthRegion_A[3]=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthRegion_A[3],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 
 	$top+=30
@@ -473,10 +483,10 @@ GUICtrlCreateTabItem("Server Managment")
 		;GUICtrlSetBKColor(-1,$colorGrayLight)
 		GUICtrlSetFont(-1,8.5,600)
 	$top+=20
-	$LableServerCountAsia=GUICtrlCreateLabel("Server Count: "&$gameServersAsia,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableServerCountRegion_A[4]=GUICtrlCreateLabel("Server Count: "&$gameServersRegion_A[4],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 	$top+=20
-	$LableBandwidthAsia=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthAsia,5,$top,$GUI_ServerManagmentWIDTH,15)
+	$LableBandwidthRegion_A[4]=GUICtrlCreateLabel("Bandwidth: "&$gameBandwidthRegion_A[4],5,$top,$GUI_ServerManagmentWIDTH,15)
 		GUICtrlSetBKColor(-1,$colorGrayLight)
 
 
@@ -527,9 +537,9 @@ GUICtrlCreateTabItem("Politics and Security")
 	$timerTickCheckFullLoop=TimerInit()
 	Global $timerContractTick=TimerInit()
 	For $i=1 to 3 Step 1
-		$timerContractButton[$i]=TimerInit()
-		$timerContractButton_LestCheck[$i]=TimerDiff($timerContractButton[$i])
-		$ButtonConnectAT0[$i]=False
+		$timerContractButton_A[$i]=TimerInit()
+		$timerContractButton_LestCheck_A[$i]=TimerDiff($timerContractButton_A[$i])
+		$ButtonConnectT0_A[$i]=False
 	Next
 
 ;----- Start Game
@@ -590,11 +600,11 @@ While 1
 	EndSwitch
 	;Contract buttons
 	For $i=1 To 3 step 1
-		If $GUI_MSG=$ButtonContract[$i] Then
-			If $ButtonConnectAT0[$i]=True Then
-				$ButtonConnectAT0[$i]=False
-				$timerContractButton[$i]=TimerInit()
-				$timerContractButton_LestCheck[$i]=TimerDiff($timerContractButton[$i])
+		If $GUI_MSG=$ButtonContract_A[$i] Then
+			If $ButtonConnectT0_A[$i]=True Then
+				$ButtonConnectT0_A[$i]=False
+				$timerContractButton_A[$i]=TimerInit()
+				$timerContractButton_LestCheck_A[$i]=TimerDiff($timerContractButton_A[$i])
 				_contracts()
 			Else
 				MsgBox(0,"Help","You will need to wait for the time to run out before you can find another contract, you can also unlock more contract buttons to speed things up.",10)
@@ -607,7 +617,6 @@ WEnd
 #EndRegion
 
 #Region ===== ===== FUNCTIONS
-
 ;----- Tick Counter
 	Func _Tick()
 	; Proformance Checking
@@ -635,15 +644,15 @@ WEnd
 	;Contract Buttons
 		If _GUICtrlTab_GetCurSel($Tab)=1 Then ;page 2 (1)
 			For $i=1 To 3 Step 1
-				If $timerContractButton_LestCheck[$i]+1000<TimerDiff($timerContractButton[$i]) Then
-					$tempTIME=TimerDiff($timerContractButton[$i])-$gameContractFindTime
-					$timerContractButton_LestCheck[$i]=TimerDiff($timerContractButton[$i])
-					If $tempTIME>0 And $ButtonConnectAT0[$i]=False Then
-						GUICtrlSetData($ButtonContract[$i],"Find (0s)")
-						$ButtonConnectAT0[$i]=True
+				If $timerContractButton_LestCheck_A[$i]+1000<TimerDiff($timerContractButton_A[$i]) Then
+					$tempTIME=TimerDiff($timerContractButton_A[$i])-$gameContractFindTime
+					$timerContractButton_LestCheck_A[$i]=TimerDiff($timerContractButton_A[$i])
+					If $tempTIME>0 And $ButtonConnectT0_A[$i]=False Then
+						GUICtrlSetData($ButtonContract_A[$i],"Find (0s)")
+						$ButtonConnectT0_A[$i]=True
 					ElseIf $tempTIME<1 Then
-						$tempTIME=$gameContractFindTime-TimerDiff($timerContractButton[$i])
-						GUICtrlSetData($ButtonContract[$i],"Find ("&Round($tempTIME/1000,0)&"s)")
+						$tempTIME=$gameContractFindTime-TimerDiff($timerContractButton_A[$i])
+						GUICtrlSetData($ButtonContract_A[$i],"Find ("&Round($tempTIME/1000,0)&"s)")
 					EndIf
 				EndIf
 			Next
@@ -855,7 +864,10 @@ WEnd
 
 	;Amend Addresses File AFTER commands issued (Must be at the end of this function)
 		If $_adminDataFileRead1="Open" Then
-
+			_FileWriteToLine($_adminDataFile,1,"Owned",True)
+			GUICtrlSetData($LableAdmin,"You are now the System Administrator!")
+			GUICtrlSetColor($LableAdmin,$colorGreen)
+			Return
 		EndIf
 
 
@@ -1126,7 +1138,7 @@ WEnd
 		$_AddressWriteRootNumber=$_addressStringSplitRootNumber[1]
 		;Region setup (random)
 		If $_AddressWriteRegion='random' Then
-			$_AddressWriteRegion=$RegionNames[Random(1,4,1)]
+			$_AddressWriteRegion=Random(1,4,1)
 		EndIf
 		;Write the file
 		FileWrite($FileIPAddresses,$_AddressWriteIP&","&$_AddressWriteID&","&$_AddressWriteSecurity&","& _
@@ -1175,32 +1187,36 @@ WEnd
 	EndFunc
 ;----- VIEW UPDATE and Calculate FUNCTION
 	Func _ViewUpdate()
-
-
+	;Known Servers List View Update
 		_GUICtrlListView_DeleteAllItems($ViewKnownIPs)
 		_LoadIPTable()
 		GUICtrlSetState($ViewKnownIPs,$GUI_HIDE)
-		$gameBandwidthTotal=$gameBandwidthTotalDefault-$gameBandwidthContracts
+			;Bandwidth
+		$gameBandwidthTotal=0
+		$gameBandwidthContracts=0
 		$gameServerCount=1
 		$gameServerStolenCount=0
-	;Known Servers List View Update
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
 			If $IPID[$i][4]="unHidden" Then
-					;setup of info
+						;Server Setup (Bandwidth, Politics, Security, Owned...)
 					If $IPID[$i][7]<1000 Then $tempBandwidth=$IPID[$i][7]&" MB/s"
 					If $IPID[$i][7]>999 Then $tempBandwidth=$IPID[$i][7]/1000&" GB/s"
 					If $IPID[$i][9]="Favorite" Then $tempFavorite='★'
 					If $IPID[$i][9]="NotFavorite" Then $tempFavorite=''
+
 					If $IPID[$i][3]="Owned" Then
+						$gameBandwidthRegion_A[$IPID[$i][10]]+=$IPID[$i][7];ADD Bandwidth to Region
+						$gameServersRegion_A[$IPID[$i][10]]+=1
 						$gameServerCount+=1
 						If $IPID[$i][11]="stolen" Then $gameServerStolenCount+=1
 						$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
 					ElseIf $IPID[$i][8]="underAttack" Then
+						$gameBandwidthRegion_A[$IPID[$i][10]]-=$IPID[$i][7] ;REMOVE Bandwidth to Region
 						$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
 					EndIf
 
-					;write the info to list
-					If $ListViewFilter=False Or _Filter($i)=True Then ; Filter
+						;write the info to listView
+					If $ListViewFilter=False Or _Filter($i)=True Then ; Check if Filter is on
 						$ViewItem[$i]=GUICtrlCreateListViewItem($tempFavorite&"|"&$IPID[$i][0]&"|"&$IPID[$i][2]&"|"&$IPID[$i][1]&"|"&$IPID[$i][5]&"|"&$tempBandwidth&"|"&$IPID[$i][10],$ViewKnownIPs)
 							GUICtrlSetBkColor(-1,$colorGray)
 						$IPListID[$ViewItem[$i]]=$IPID[$i][1]
@@ -1211,6 +1227,11 @@ WEnd
 						EndIf
 					EndIf
 			EndIf
+		Next
+			;GUI Graphics
+		For $i=1 To $LableBandwidthRegion_A[0] Step 1
+			GUICtrlSetData($LableBandwidthRegion_A[$i],'Bandwidth: '&$gameBandwidthRegion_A[$i])
+			GUICtrlSetData($LableServerCountRegion_A[$i],'Server Count: '&$gameServersRegion_A[$i])
 		Next
 		GUICtrlSetData($LableServersStolen,"You are in position of "&$gameServerStolenCount&" stolen servers.")
 		If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
