@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=ip.ico
 #AutoIt3Wrapper_Outfile=The IP Game 0.7.0.1.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.8.0.0 Server Region Update - Beta"
+Global $Version = "0.8.1.0 Server Region Update - Beta"
 
 #cs ===== ===== PLANNING
 
@@ -116,23 +116,16 @@ Global $gameServerCount;=1 _ViewUpdate
 Global $gameServerStolenCount;=0 _ViewUpdate
 Global $gameServersRegion_A[5]
 $gameServersRegion_A[0]=4
-For $i=1 To $gameServersRegion_A[0]
-	$gameServersRegion_A[$i]=0
-Next
 	;Bandwidth
 Global $gameBandwidthRegion_A[5]
 $gameBandwidthRegion_A[0]=4
-For $i=1 To $gameBandwidthRegion_A[0]
-	$gameBandwidthRegion_A[$i]=0
-Next
-Global $gameBandwidthContractsRegion_A[5]
-$gameBandwidthContractsRegion_A[0]=4
-For $i=1 To $gameBandwidthContractsRegion_A[0]
-	$gameBandwidthContractsRegion_A[$i]=0
-Next
+Global $gameBandwidthContractsTotalRegion_A[5]
+$gameBandwidthContractsTotalRegion_A[0]=4
+;For $i=1 To $gameBandwidthContractsTotalRegion_A[0]
+;	$gameBandwidthContractsTotalRegion_A[$i]=0
+;Next
 Global $gameBandwidthTotal=0
 Global $gameBandwidthContractsTotal=0
-Global $gameBandwidthContracts=0
 
 ;--- Colors
 $colorREDLight=0xff9090
@@ -274,8 +267,8 @@ EndIf
 	$Tab=GUICtrlCreateTab(0,0,$GUIWidth,$GUIHight)
 #EndRegion
 
-	#Region ----- Server Control
-GUICtrlCreateTabItem("Server Control")
+	#Region ----- Public Servers
+GUICtrlCreateTabItem("Public Servers")
 
 	$GUIviewSize_KnownIPs=550 ;MAX for current GUI width (v0.6.4.0)
 ; Right
@@ -369,7 +362,7 @@ GUICtrlCreateTabItem("Money and Contracts") ;Dont change this lable name
 	$ButtonContract_A[3]=GUICtrlCreateButton("Find (300s)",$GUIWidth-$GUI_moneyViewWidth-5+($tempWIDTH*2),$top,$tempWIDTH)
 		GUICtrlSetState(-1,$GUI_DISABLE)
 	$top+=30
-	$LableBandwaidthContracts=GUICtrlCreateLabel("Bandwidth used by contrcts: "&$gameBandwidthContracts&" Mbps",$GUIWidth-$GUI_moneyViewWidth-4,$top,$GUI_moneyViewWidth)
+	$LableBandwaidthContracts=GUICtrlCreateLabel("Bandwidth used by contrcts: "&$gameBandwidthContractsTotal&" Mbps",$GUIWidth-$GUI_moneyViewWidth-4,$top,$GUI_moneyViewWidth)
 		GUICtrlSetFont(-1,9)
 
 ; Middle
@@ -667,7 +660,7 @@ WEnd
 					If TimerDiff($gameContractID[$i][3])>$gameContractID[$i][2]*1000 Then ;delete if time is up
 						$gameContractID[$i][1]=0
 						$gameIncomeTotal-=$gameContractID[$i][4]
-						$gameBandwidthContracts-=$gameContractID[$i][5]
+						$gameBandwidthContractsTotal-=$gameContractID[$i][5]
 						$gameContractsActive-=1
 						$TEMPUpdate=True
 					EndIf
@@ -741,7 +734,7 @@ WEnd
 				MsgBox(16,'Warning!',"You dont't have enough bandwidth to fill this contract!")
 				Return
 			EndIf
-			$gameBandwidthContracts+=$_contractsBandwidth ;Add the bandwidth to be deducted
+			$gameBandwidthContractsTotal+=$_contractsBandwidth ;Add the bandwidth to be deducted
 			$gameContractTotalToday+=1
 			$gameContractsActive+=1
 			$gameContractScore+=1
@@ -835,7 +828,7 @@ WEnd
 	;SSH Security
 		ElseIf $_adminData[1]='SSHActive' Then
 			If $IPID[$_adminData[2]][3]='Owned' then
-				MsgBox(0,"SSH certificate Found","The SSH certificate for this server was found on server "&$IPID[$_adminData[2]][0]&" (you own this server)")
+				MsgBox(0,"SSH certificate used","The SSH certificate for this server found on server "&$IPID[$_adminData[2]][0]&" has been used. (you now own this server)")
 				$_adminDataString=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"NotOwned","Owned")
 				_FileWriteToLine($FileIPAddresses,$_connectID,$_adminDataString,True)
 				_FileWriteToLine($_adminDataFile,1,"Owned",True)
@@ -901,7 +894,7 @@ WEnd
 
 			Next
 			If $_publicIPCount2=0 Then
-				GUICtrlSetData($LablePublic,"You have already looked at all the files on this server.")
+				GUICtrlSetData($LablePublic,"No new files.")
 			Else
 				$Temp_GUI1=GUICreate("New IP Adresses",200,300,-1,-1,0x00800000)
 				$Temp_GUI1_LableIPAddresses=GUICtrlCreateLabel($_publicIPCount,3,5,190,225)
@@ -936,6 +929,8 @@ WEnd
 					EndSwitch
 				WEnd
 				GUIDelete($Temp_GUI1)
+				GUICtrlSetData($LablePublic,"SSH Certificate Found!")
+					GUICtrlSetColor($LablePublic,$colorGreen)
 			Else
 				GUICtrlSetData($LablePublic,"Server is not owned.")
 			EndIf
@@ -1039,7 +1034,8 @@ WEnd
 			_ViewUpdate()
 			Return
 		EndIf
-	;Check if attack possible
+	;Starting a DDOS
+			;Check if attack possible
 		If FileExists($_DDOSadminFile) Then
 			If $_DDOSadminData[1] <> "Firewall" Then
 				GUICtrlSetData($LableDDOS,"Only Firewalls can be attacked.")
@@ -1049,12 +1045,12 @@ WEnd
 			GUICtrlSetData($LableDDOS,"Only Firewalls can be attacked.")
 			Return
 		EndIf
+			;Bandwidth Check
 		If $gameBandwidthTotal<$_DDOSBandwith Then
 			GUICtrlSetData($LableDDOS,"Attack not possible, not enough bandwidth.")
 			Return
 		EndIf
-
-	;Start attack
+			;Start attack
 		$gameBandwidthTotal=$gameBandwidthTotal-$_DDOSBandwith
 		$_DDOSStringAddress=StringReplace(FileReadLine($FileIPAddresses,$_connectID),"Safe","underAttack")
 		_FileWriteToLine($FileIPAddresses,$_connectID,$_DDOSStringAddress,True)
@@ -1192,8 +1188,13 @@ WEnd
 		_LoadIPTable()
 		GUICtrlSetState($ViewKnownIPs,$GUI_HIDE)
 			;Bandwidth
-		$gameBandwidthTotal=0
-		$gameBandwidthContracts=0
+		For $i=1 To $gameBandwidthRegion_A[0]
+			$gameBandwidthRegion_A[$i]=0
+		Next
+		For $i=1 To $gameServersRegion_A[0]
+			$gameServersRegion_A[$i]=0
+		Next
+		$gameBandwidthTotal=0-$gameBandwidthContractsTotal
 		$gameServerCount=1
 		$gameServerStolenCount=0
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
@@ -1252,7 +1253,7 @@ WEnd
 			Next
 		EndIf
 
-		GUICtrlSetData($LableBandwaidthContracts,"Bandwidth used by contrcts: "&$gameBandwidthContracts&" Mbps ("&$gameBandwidthTotal&")")
+		GUICtrlSetData($LableBandwaidthContracts,"Bandwidth used by contrcts: "&$gameBandwidthContractsTotal&" Mbps ("&$gameBandwidthTotal&")")
 		_ViewUpdateMoney()
 
 	EndFunc
