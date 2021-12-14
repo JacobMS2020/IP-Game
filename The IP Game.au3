@@ -1,8 +1,8 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=ip.ico
-#AutoIt3Wrapper_Outfile=The IP Game 0.7.0.0.exe
+#AutoIt3Wrapper_Outfile=The IP Game 0.7.0.1.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-Global $Version = "0.7.0.0 Money Update"
+Global $Version = "0.7.0.1 Money Update"
 
 #cs ===== ===== PLANNING
 
@@ -57,7 +57,6 @@ $FileLog=@ScriptDir&"\Log.log"
 ;--- Misc
 Global $IPID[999][99] ;See line 13 / Coding Help for more info
 Global $gameContractID[999][99]
-
 Global $ViewItem[999]
 Global $ViewContractsItemID[999]
 Global $IPListID[999]
@@ -91,9 +90,11 @@ Global $gameContractsActive=0
 Global $gameContractTotalCompleate=0
 Global $gameContractTotalToday=0
 Global $gameContractScore=0
+	;GUI
 Global $ButtonContract[4]
 Global $ButtonConnectAT0[4]
 Global $ViewContractsItemCount=0
+;Global $LableServersStolen
 	;Tools
 Global $ToolPasswordBreaker1=True
 Global $ToolPasswordBreaker2=False
@@ -107,7 +108,8 @@ $RegionNames[1] = "Europe"
 $RegionNames[2] = "America"
 $RegionNames[3] = "Oceania"
 $RegionNames[4] = "Asia"
-Global $gameServerCount=1
+Global $gameServerCount;=1 _ViewUpdate
+Global $gameServerStolenCount;=0 _ViewUpdate
 Global $gameServersEurope=0
 Global $gameServersAmerica=0
 Global $gameServersOceania=0
@@ -489,8 +491,9 @@ GUICtrlCreateTabItem("Server Managment")
 
 	#Region ----- Politics & Political
 GUICtrlCreateTabItem("Politics and Security")
+	$tempWIDTH=$guiWidth*0.33
 	$top=25
-	GUICtrlCreateLabel(":)",5,$top)
+	$LableServersStolen=GUICtrlCreateLabel("",5,$top,$tempWIDTH,20)
 
 
 	#EndRegion
@@ -1170,7 +1173,7 @@ WEnd
 		GUICtrlSetData($LableNetIncome,"Net Income $"&$gameIncomeTotal-$gameExpensesTotal)
 		GUICtrlSetData($LableMoney,"Bank: $"&$gameMoney)
 	EndFunc
-;----- VIEW UPDATE FUNCTION
+;----- VIEW UPDATE and Calculate FUNCTION
 	Func _ViewUpdate()
 
 
@@ -1179,6 +1182,7 @@ WEnd
 		GUICtrlSetState($ViewKnownIPs,$GUI_HIDE)
 		$gameBandwidthTotal=$gameBandwidthTotalDefault-$gameBandwidthContracts
 		$gameServerCount=1
+		$gameServerStolenCount=0
 	;Known Servers List View Update
 		For $i=1 to _FileCountLines($FileIPAddresses) Step 1
 			If $IPID[$i][4]="unHidden" Then
@@ -1189,6 +1193,7 @@ WEnd
 					If $IPID[$i][9]="NotFavorite" Then $tempFavorite=''
 					If $IPID[$i][3]="Owned" Then
 						$gameServerCount+=1
+						If $IPID[$i][11]="stolen" Then $gameServerStolenCount+=1
 						$gameBandwidthTotal=$gameBandwidthTotal+$IPID[$i][7]
 					ElseIf $IPID[$i][8]="underAttack" Then
 						$gameBandwidthTotal=$gameBandwidthTotal-$IPID[$i][7]
@@ -1207,6 +1212,7 @@ WEnd
 					EndIf
 			EndIf
 		Next
+		GUICtrlSetData($LableServersStolen,"You are in position of "&$gameServerStolenCount&" stolen servers.")
 		If $_connectBool=True Then GUICtrlSetBkColor($ViewItem[$_connectID],$colorGreenLight)
 		If $gameBandwidthTotal<1000 Then
 			GUICtrlSetData($LableBandwaidthTotal,$gameBandwidthTotal&" MB/s")
@@ -1215,9 +1221,9 @@ WEnd
 		EndIf
 		GUICtrlSetState($ViewKnownIPs,$GUI_SHOW)
 
-		;Contracts List View Update
+	;Contracts List View Update
+		_GUICtrlListView_DeleteAllItems($ViewContracts)
 		If $gameContractsActive>0 Then ;Add money and delete old contracts
-			_GUICtrlListView_DeleteAllItems($ViewContracts)
 			For $i=0 To $gameContractTotalToday Step 1
 				If $gameContractID[$i][1]=1 Then ;if active
 					GUICtrlCreateListViewItem("$"&$gameContractID[$i][4]&"|Website|"&$gameContractID[$i][0]&"|"&$gameTimeHour&":"&$gameTimeMin&"|"&Round($gameContractID[$i][2]/60,0)&"h",$ViewContracts)
@@ -1227,6 +1233,7 @@ WEnd
 
 		GUICtrlSetData($LableBandwaidthContracts,"Bandwidth used by contrcts: "&$gameBandwidthContracts&" Mbps ("&$gameBandwidthTotal&")")
 		_ViewUpdateMoney()
+
 	EndFunc
 
 
